@@ -1,0 +1,478 @@
+<form class="pf-v5-c-inline-edit" id="bulk-edit-table-example">
+    <table
+            class="pf-v5-c-table pf-m-grid-lg"
+            role="grid"
+            aria-label="Inline edit table row example"
+            id="inline-edit-table-row-example"
+    >
+        <caption class="pf-v5-c-table__caption">This is the table caption</caption>
+        <thead class="pf-v5-c-table__thead">
+        <tr class="pf-v5-c-table__tr" role="row">
+            <th class="pf-v5-c-table__th" role="columnheader">Text input</th>
+            <th class="pf-v5-c-table__th" role="columnheader">Disabled text input</th>
+            <th class="pf-v5-c-table__th" role="columnheader">Checkboxes</th>
+            <th class="pf-v5-c-table__th" role="columnheader">Radios</th>
+            <th class="pf-v5-c-table__th" role="columnheader">Number</th>
+            <td class="pf-v5-c-table__td"></td>
+
+            <td class="pf-v5-c-table__td"></td>
+        </tr>
+        </thead>
+
+        <tbody class="pf-v5-c-table__tbody" role="rowgroup">
+        <tr class="pf-v5-c-table__tr pf-m-inline-editable" role="row">
+            <th
+                    class="pf-v5-c-table__th"
+                    role="columnheader"
+                    data-label="Text input"
+            >
+                <div class="pf-v5-c-inline-edit__value">Text input description content</div>
+                <div class="pf-v5-c-inline-edit__input">
+            <span class="pf-v5-c-form-control">
+              <input
+                      type="text"
+                      value="Text input description content"
+                      id="bulk-edit-table-example-row-1-text-input"
+                      aria-label="Text input"
+              />
+            </span>
+                </div>
+            </th>
+            <td
+                    class="pf-v5-c-table__td"
+                    role="cell"
+                    data-label="Disabled text input"
+            >
+                <div
+                        class="pf-v5-c-inline-edit__value"
+                >Text input disabled, description content
+                </div>
+                <div class="pf-v5-c-inline-edit__input">
+            <span class="pf-v5-c-form-control pf-m-disabled">
+              <input
+                      disabled
+                      type="text"
+                      value="Text input disabled, description content"
+                      id="bulk-edit-table-example-row-1-text-input-disabled"
+                      aria-label="Disabled text input"
+              />
+            </span>
+                </div>
+            </td>
+            <td class="pf-v5-c-table__td" role="cell" data-label="Checkboxes">
+                <div class="pf-v5-c-inline-edit__value">Check 1, Check 2</div>
+                <div class="pf-v5-c-inline-edit__group pf-m-column">
+                    <div class="pf-v5-c-inline-edit__input">
+                        <div class="pf-v5-c-check">
+                            <input
+                                    class="pf-v5-c-check__input"
+                                    type="checkbox"
+                                    id="bulk-edit-table-example-row-1-check-1"
+                                    name="bulk-edit-table-example-row-1-example-check"
+                            />
+
+                            <label
+                                    class="pf-v5-c-check__label"
+                                    for="bulk-edit-table-example-row-1-check-1"
+                            >Check 1</label>
+                        </div>
+                    </div>
+                    <div class="pf-v5-c-inline-edit__input">
+                        <div class="pf-v5-c-check">
+                            <input
+                                    class="pf-v5-c-check__input"
+                                    type="checkbox"
+                                    id="bulk-edit-table-example-row-1-check-2"
+                                    name="bulk-edit-table-example-row-1-example-check-2"
+                            />
+
+                            <label
+                                    class="pf-v5-c-check__label"
+                                    for="bulk-edit-table-example-row-1-check-2"
+                            >Check 2</label>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td class="pf-v5-c-table__td" role="cell" data-label="Radios">
+                <div class="pf-v5-c-inline-edit__value">Radio 1, Radio 2</div>
+                <div
+                        class="pf-v5-c-inline-edit__group pf-m-column"
+                        role="radiogroup"
+                        aria-label="Radio group example"
+                >
+                    <div class="pf-v5-c-inline-edit__input">
+                        <div class="pf-v5-c-radio">
+                            <input
+                                    class="pf-v5-c-radio__input"
+                                    type="radio"
+                                    id="bulk-edit-table-example-row-1-radio-1"
+                                    name="bulk-edit-table-example-row-1-example-radio"
+                            />
+
+                            <label
+                                    class="pf-v5-c-radio__label"
+                                    for="bulk-edit-table-example-row-1-radio-1"
+                            >Radio 1</label>
+                        </div>
+                    </div>
+                    <div class="pf-v5-c-inline-edit__input">
+                        <div class="pf-v5-c-radio">
+                            <input
+                                    class="pf-v5-c-radio__input"
+                                    type="radio"
+                                    id="bulk-edit-table-example-row-1-radio-2"
+                                    name="bulk-edit-table-example-row-1-example-radio"
+                            />
+
+                            <label
+                                    class="pf-v5-c-radio__label"
+                                    for="bulk-edit-table-example-row-1-radio-2"
+                            >Radio 2</label>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td class="pf-v5-c-table__td" role="cell" data-label="Number">
+                <div class="pf-v5-c-inline-edit__value">2</div>
+                <div class="pf-v5-c-inline-edit__input">
+            <span class="pf-v5-c-form-control">
+              <input
+                      type="number"
+                      value="2"
+                      id="bulk-edit-table-example-row-1-number-input"
+                      aria-label="Number input"
+              />
+            </span>
+                </div>
+            </td>
+            <td
+                    class="pf-v5-c-table__td pf-v5-c-table__inline-edit-action"
+                    role="cell"
+            >
+                <div
+                        class="pf-v5-c-inline-edit__group pf-m-action-group pf-m-icon-group"
+                >
+                    <div class="pf-v5-c-inline-edit__action pf-m-valid">
+                        <button
+                                class="pf-v5-c-button pf-m-plain"
+                                type="button"
+                                aria-label="Save edits"
+                        >
+                            <i class="fas fa-check" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="pf-v5-c-inline-edit__action">
+                        <button
+                                class="pf-v5-c-button pf-m-plain"
+                                type="button"
+                                aria-label="Cancel edits"
+                        >
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="pf-v5-c-inline-edit__action pf-m-enable-editable">
+                    <button
+                            class="pf-v5-c-button pf-m-plain"
+                            type="button"
+                            id="bulk-edit-table-example-row-1-edit-button"
+                            aria-label="Edit"
+                            aria-labelledby="bulk-edit-table-example-label bulk-edit-table-example-row-1-edit-button"
+                    >
+                        <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </td>
+            <td class="pf-v5-c-table__td pf-v5-c-table__action" role="cell">
+                <div class="pf-v5-c-dropdown">
+                    <button
+                            class="pf-v5-c-dropdown__toggle pf-m-plain"
+                            id="inline-edit-table-row-example-row-1--dropdown-kebab-button"
+                            aria-expanded="false"
+                            type="button"
+                            aria-label="Actions"
+                    >
+                        <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                    </button>
+                    <ul
+                            class="pf-v5-c-dropdown__menu pf-m-align-right"
+                            aria-labelledby="inline-edit-table-row-example-row-1--dropdown-kebab-button"
+                            hidden
+                            role="menu"
+                    >
+                        <li role="none">
+                            <a
+                                    class="pf-v5-c-dropdown__menu-item"
+                                    role="menuitem"
+                                    href="#"
+                            >Link</a>
+                        </li>
+                        <li role="none">
+                            <button
+                                    class="pf-v5-c-dropdown__menu-item"
+                                    role="menuitem"
+                                    type="button"
+                            >Action
+                            </button>
+                        </li>
+                        <li role="none">
+                            <a
+                                    class="pf-v5-c-dropdown__menu-item pf-m-disabled"
+                                    role="menuitem"
+                                    href="#"
+                                    aria-disabled="true"
+                                    tabindex="-1"
+                            >Disabled link</a>
+                        </li>
+                        <li role="none">
+                            <button
+                                    class="pf-v5-c-dropdown__menu-item"
+                                    role="menuitem"
+                                    type="button"
+                                    disabled
+                            >Disabled action
+                            </button>
+                        </li>
+                        <li class="pf-v5-c-divider" role="separator"></li>
+                        <li role="none">
+                            <a
+                                    class="pf-v5-c-dropdown__menu-item"
+                                    role="menuitem"
+                                    href="#"
+                            >Separated link</a>
+                        </li>
+                    </ul>
+                </div>
+            </td>
+        </tr>
+
+        <tr class="pf-v5-c-table__tr" role="row">
+            <th
+                    class="pf-v5-c-table__th"
+                    role="columnheader"
+                    data-label="Text input"
+            >
+                <div class="pf-v5-c-inline-edit__value">Text input description content</div>
+                <div class="pf-v5-c-inline-edit__input">
+            <span class="pf-v5-c-form-control">
+              <input
+                      type="text"
+                      value="Text input description content"
+                      id="bulk-edit-table-example-row-2-text-input"
+                      aria-label="Text input"
+              />
+            </span>
+                </div>
+            </th>
+            <td
+                    class="pf-v5-c-table__td"
+                    role="cell"
+                    data-label="Disabled text input"
+            >
+                <div
+                        class="pf-v5-c-inline-edit__value"
+                >Text input disabled, description content
+                </div>
+                <div class="pf-v5-c-inline-edit__input">
+            <span class="pf-v5-c-form-control pf-m-disabled">
+              <input
+                      disabled
+                      type="text"
+                      value="Text input disabled, description content"
+                      id="bulk-edit-table-example-row-2-text-input-disabled"
+                      aria-label="Disabled text input"
+              />
+            </span>
+                </div>
+            </td>
+            <td class="pf-v5-c-table__td" role="cell" data-label="Checkboxes">
+                <div class="pf-v5-c-inline-edit__value">Check 1, Check 2</div>
+                <div class="pf-v5-c-inline-edit__group pf-m-column">
+                    <div class="pf-v5-c-inline-edit__input">
+                        <div class="pf-v5-c-check">
+                            <input
+                                    class="pf-v5-c-check__input"
+                                    type="checkbox"
+                                    id="bulk-edit-table-example-row-2-check-1"
+                                    name="bulk-edit-table-example-row-2-example-check"
+                            />
+
+                            <label
+                                    class="pf-v5-c-check__label"
+                                    for="bulk-edit-table-example-row-2-check-1"
+                            >Check 1</label>
+                        </div>
+                    </div>
+                    <div class="pf-v5-c-inline-edit__input">
+                        <div class="pf-v5-c-check">
+                            <input
+                                    class="pf-v5-c-check__input"
+                                    type="checkbox"
+                                    id="bulk-edit-table-example-row-2-check-2"
+                                    name="bulk-edit-table-example-row-2-example-check-2"
+                            />
+
+                            <label
+                                    class="pf-v5-c-check__label"
+                                    for="bulk-edit-table-example-row-2-check-2"
+                            >Check 2</label>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td class="pf-v5-c-table__td" role="cell" data-label="Radios">
+                <div class="pf-v5-c-inline-edit__value">Radio 1, Radio 2</div>
+                <div
+                        class="pf-v5-c-inline-edit__group pf-m-column"
+                        role="radiogroup"
+                        aria-label="Radio group example"
+                >
+                    <div class="pf-v5-c-inline-edit__input">
+                        <div class="pf-v5-c-radio">
+                            <input
+                                    class="pf-v5-c-radio__input"
+                                    type="radio"
+                                    id="bulk-edit-table-example-row-2-radio-1"
+                                    name="bulk-edit-table-example-row-2-example-radio-1"
+                            />
+
+                            <label
+                                    class="pf-v5-c-radio__label"
+                                    for="bulk-edit-table-example-row-2-radio-1"
+                            >Radio 1</label>
+                        </div>
+                    </div>
+                    <div class="pf-v5-c-inline-edit__input">
+                        <div class="pf-v5-c-radio">
+                            <input
+                                    class="pf-v5-c-radio__input"
+                                    type="radio"
+                                    id="bulk-edit-table-example-row-2-radio-2"
+                                    name="bulk-edit-table-example-row-2-example-radio-2"
+                            />
+
+                            <label
+                                    class="pf-v5-c-radio__label"
+                                    for="bulk-edit-table-example-row-2-radio-2"
+                            >Radio 2</label>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td class="pf-v5-c-table__td" role="cell" data-label="Number">
+                <div class="pf-v5-c-inline-edit__value">2</div>
+                <div class="pf-v5-c-inline-edit__input">
+            <span class="pf-v5-c-form-control">
+              <input
+                      type="number"
+                      value="2"
+                      id="bulk-edit-table-example-row-2-number-input"
+                      aria-label="Number input"
+              />
+            </span>
+                </div>
+            </td>
+            <td
+                    class="pf-v5-c-table__td pf-v5-c-table__inline-edit-action"
+                    role="cell"
+            >
+                <div
+                        class="pf-v5-c-inline-edit__group pf-m-action-group pf-m-icon-group"
+                >
+                    <div class="pf-v5-c-inline-edit__action pf-m-valid">
+                        <button
+                                class="pf-v5-c-button pf-m-plain"
+                                type="button"
+                                aria-label="Save edits"
+                        >
+                            <i class="fas fa-check" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="pf-v5-c-inline-edit__action">
+                        <button
+                                class="pf-v5-c-button pf-m-plain"
+                                type="button"
+                                aria-label="Cancel edits"
+                        >
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="pf-v5-c-inline-edit__action pf-m-enable-editable">
+                    <button
+                            class="pf-v5-c-button pf-m-plain"
+                            type="button"
+                            id="bulk-edit-table-example-row-2-edit-button"
+                            aria-label="Edit"
+                            aria-labelledby="bulk-edit-table-example-label bulk-edit-table-example-row-2-edit-button"
+                    >
+                        <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </td>
+            <td class="pf-v5-c-table__td pf-v5-c-table__action" role="cell">
+                <div class="pf-v5-c-dropdown">
+                    <button
+                            class="pf-v5-c-dropdown__toggle pf-m-plain"
+                            id="inline-edit-table-row-example-row-2--dropdown-kebab-button"
+                            aria-expanded="false"
+                            type="button"
+                            aria-label="Actions"
+                    >
+                        <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                    </button>
+                    <ul
+                            class="pf-v5-c-dropdown__menu pf-m-align-right"
+                            aria-labelledby="inline-edit-table-row-example-row-2--dropdown-kebab-button"
+                            hidden
+                            role="menu"
+                    >
+                        <li role="none">
+                            <a
+                                    class="pf-v5-c-dropdown__menu-item"
+                                    role="menuitem"
+                                    href="#"
+                            >Link</a>
+                        </li>
+                        <li role="none">
+                            <button
+                                    class="pf-v5-c-dropdown__menu-item"
+                                    role="menuitem"
+                                    type="button"
+                            >Action
+                            </button>
+                        </li>
+                        <li role="none">
+                            <a
+                                    class="pf-v5-c-dropdown__menu-item pf-m-disabled"
+                                    role="menuitem"
+                                    href="#"
+                                    aria-disabled="true"
+                                    tabindex="-1"
+                            >Disabled link</a>
+                        </li>
+                        <li role="none">
+                            <button
+                                    class="pf-v5-c-dropdown__menu-item"
+                                    role="menuitem"
+                                    type="button"
+                                    disabled
+                            >Disabled action
+                            </button>
+                        </li>
+                        <li class="pf-v5-c-divider" role="separator"></li>
+                        <li role="none">
+                            <a
+                                    class="pf-v5-c-dropdown__menu-item"
+                                    role="menuitem"
+                                    href="#"
+                            >Separated link</a>
+                        </li>
+                    </ul>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</form>

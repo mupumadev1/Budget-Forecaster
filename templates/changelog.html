@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block content %}
+    <section class="section is-title-bar">
+        <div class="level">
+            <div class="level-left">
+                <div class="level-item">
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="hero is-hero-bar">
+        <div class="hero-body">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item"><h1 class="title">
+                        Change Log
+                    </h1></div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="section is-main-section">
+        <div class="card p-2">
+            <header class="card-header">
+                <p class="card-header-title">
+                    <span class="icon"><i class="mdi mdi-cogs"></i></span>
+                    View Budget Changes
+                </p>
+
+            </header>
+            <div class="card-content">
+
+
+                <div class="table-wrapper has-mobile-cards"
+                     style="overflow-y:auto;max-height:400px;">
+                    <table class="table sticky-header is-striped is-hoverable">
+                        <thead>
+
+                        <tr>
+                            <th>User</th>
+                            <th>Item Description</th>
+                            <th>Action</th>
+                            <th>Amount</th>
+                            <th>Department</th>
+                            <th>Budget Set</th>
+                            <th>Time</th>
+
+                        </tr>
+                        </thead>
+                        <tbody>
+
+                        {% for status in changes %}
+
+                            <tr data-id="{{ status.id }}">
+                                <td>{{ status.user.first_name }} {{ status.user.last_name }}</td>
+                                <td>{{ status.item_description }}</td>
+                                <td>{{ status.action }}</td>
+                                <td>{{ status.total }}</td>
+                                <td>{{ status.department }}</td>
+                                <td>{{ status.budget_set }}</td>
+                                <td>{{ status.timestamp }}</td>
+
+
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+         <div class="paginator" id="paginator" data-num-pages="{{ changes.paginator.num_pages }}">
+                    <div class="columns">
+                        <div class="column is-half mb-4 mb-md-0" id="current">
+                            <span id="page_navigator">Showing {{ changes.number }} of {{ changes.paginator.num_pages }} Pages</span>
+                        </div>
+                        <div class="column is-half is-flex is-justify-content-flex-end">
+                            <div class="custom-pagination ml-auto">
+                <span>
+                    {% if changes.has_previous %}
+                        <a href="?page={{ changes.previous_page_number }}" id="previous" class="px-2 previous">Prev</a>
+                        <a href="?page=1" class="px-2 first" id="first">First</a>
+                    {% else %}
+                        <a href="?page=0" id="previous" class="px-2 previous is-hidden">Prev</a>
+                        <a href="?page=1" class="px-2 first is-hidden" id="first">First</a>
+                    {% endif %}
+                </span>
+                                {% if changes.has_next %}
+                                    <span id="next_page">
+                    <a class="px-2 next" id="next" href="?page={{ changes.next_page_number }}">Next</a>
+                    <a href="?page={{ changes.paginator.num_pages }}" class="px-2" id="last">Last </a>
+                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </section>
+{% endblock %}
+{% block extra-scripts %}
+{% endblock %}

@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% block content %}
+    {% load widget_tweaks %}
+    <section class="section is-title-bar">
+        <div class="level">
+            <div class="level-left">
+                <div class="level-item">
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="hero is-hero-bar">
+        <div class="hero-body">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item"><h1 class="title">
+                        Settings
+                    </h1></div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section is-main-section">
+        <div class="card p-2">
+            <header class="card-header">
+                <p class="card-header-title">
+                    <span class="icon"><i class="mdi mdi-cogs"></i></span>
+                    Budget Settings
+                </p>
+               <!-- {% if request.user.role == '002' %}
+
+                    <div class="dropdown" id="myDropdown">
+                        <div class="dropdown-trigger">
+                            <button class="button" style="border:0" aria-haspopup="true"
+                                    id="toggleDropdown"
+                                    aria-controls="dropdown-menu">
+                                <span class="has-text-weight-bold">Change Year</span>
+                                <span class="icon "><i class="mdi mdi-chevron-down"></i></span>
+                            </button>
+                        </div>
+                        <div id="dropdown-menu" class="dropdown-menu " style="width:auto">
+                            <div class="dropdown-content ">
+                                <a href=""
+                                   class="dropdown-item ">2024</a>
+                                <a href=""
+                                   class="dropdown-item ">2025</a>
+                                <a href=""
+                                   class="dropdown-item ">2026</a>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <span class="icon "><i></i></span>
+                {% endif %}-->
+            </header>
+            <div class="card-content">
+                {% if request.user.role == '002' %}
+                     {% if messages %}
+                    <div class="notification is-danger ">
+                                        <div class="level">
+                                            <div class="level-left">
+                                                <div class="level-item">
+                                                    <div>
+                                                        <span class="icon"><i class="mdi mdi-buffer default"></i></span>
+                                                         {% for message in messages %}
+                                                        <b>{{ message }}</b>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="level-right">
+                                                <button type="button"
+                                                        class="button is-small is-white jb-notification-dismiss">Dismiss
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                         {% endif %}
+                    <div class="table-wrapper has-mobile-cards"
+                         style="overflow-y:auto;max-height:400px;">
+                        <table class="table sticky-header is-fullwidth is-striped is-hoverable">
+                            <thead>
+
+                            <tr>
+                                <th>Department</th>
+                                <th>Budget Set</th>
+                                <th>Year</th>
+                                <th>Comments</th>
+                                <th>Entry Status</th>
+                                <th>Budget Status</th>
+                                <th class="has-text-centered">Actions</th>
+
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+
+                            </tr>
+                            {% for status in budgetStatus %}
+
+                                <tr data-id="{{ status.id }}">
+
+                                    <td>{{ status.department.name }}</td>
+                                    <td>{{ status.budget_set }}</td>
+                                    <td>{{ status.year }}</td>
+                                    <td>{{ status.comment }}</td>
+
+                                    <td>{% if status.is_complete == True %}
+                                        <p class="button is-small is-info is-outlined" style="border-radius: 50px">
+                                            Complete</p> {% else %}
+                                        <p class="button is-small is-danger is-outlined" style="border-radius: 50px;">
+                                            Incomplete</p> {% endif %}</td>
+                                    <td class="is-checkbox-cell">
+                                        {% if status.is_active == True %}
+                                            <p class="button is-small is-primary is-outlined"
+                                               style="border-radius: 50px">Active</p> {% else %}
+                                            <p class="button is-small is-danger is-outlined"
+                                               style="border-radius: 50px">Inactive</p>  {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="level " style=" font-weight:bold;">
+                                            <div class="level-left">
+                                                {% if status.is_active == True %}
+                                                    <a href="{% url 'budgets:set-inactive' id=status.id %}"
+                                                       class="button is-narrow is-small  is-outlined mr-2"
+                                                       style="border-radius:50px;"><span class="icon mr-1"><i
+                                                            class="mdi mdi-check-circle-outline "
+                                                            style="color: red"></i></span> mark as inactive</a>
+                                                {% else %}
+                                                    <a href="{% url 'budgets:set-active' id=status.id %}"
+                                                       class="button is-narrow is-small  is-outlined mr-2"
+                                                       style="border-radius:50px;"><span class="icon is-info mr-1"><i
+                                                            class="mdi mdi-check-circle-outline "
+                                                            style="color: #00c4a7"></i></span> mark as active</a>
+                                                {% endif %}
+                                                {% if status.is_complete == True %}
+                                                    <a href="{% url 'budgets:set-incomplete' id=status.id %}"
+                                                       class="button is-narrow is-small  is-outlined mr-2"
+                                                       style="border-radius:50px;"><span class="icon mr-1"><i
+                                                            class="mdi mdi-check-circle-outline "
+                                                            style="color: red"></i></span> mark as incomplete</a>
+                                                {% else %}
+                                                    <a href="{% url 'budgets:set-complete' id=status.id %}"
+                                                       class="button is-narrow is-small is-outlined mr-2"
+                                                       style="border-radius:50px;"><span class="icon mr-1"><i
+                                                            class="mdi mdi-check-circle-outline "
+                                                            style="color: blue"></i></span> mark as complete</a>
+                                                {% endif %}
+
+                                            </div>
+                                            <div class="level-right">
+
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% include 'partials/entry-type-modal.html' %}
+                {% else %}
+                    {% for status in budgetStatus %}
+                        {% if status.is_active == True %}
+                            {% if status.department.id == request.user.department.id %}
+                                {% if status.is_complete == True %}
+                                    <div class="notification is-info changeNotification" >
+                                        <div class="level">
+                                            <div class="level-left">
+                                                <div class="level-item">
+                                                    <div>
+                                                        <span class="icon"><i class="mdi mdi-buffer default"></i></span>
+                                                        <b>Uncheck the box , provide reason for the change and submit
+                                                            request for approval</b>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="level-right">
+                                                <button type="button"
+                                                        class="button is-small is-white jb-notification-dismiss">Dismiss
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                <form>
+                                    {% csrf_token %}
+                                    <div class="field has-check is-horizontal">
+                                        <div class="field-label is-normal">
+                                            <label class="label">Complete</label>
+                                        </div>
+
+                                        <div class="field mt-2">
+                                            <div class="control">
+                                                <label class="b-checkbox checkbox">
+                                                    <input class="input" type="checkbox" id="is_complete"
+                                                           name="is_complete"
+                                                            {% if status.is_complete %} checked {% endif %}
+                                                    >
+                                                    <span class="check is-info"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="field-label is-normal">
+                                            <label class="label"> Add Comment </label>
+                                        </div>
+                                        <div class="field-body">
+                                            <div class="field">
+                                                <div class="control">
+                                                    <input class="textarea" type="text" id="comments" name="comments"
+                                                           value="
+                                                            {% if status.is_complete %}{{ status.comment }}{% endif %}"
+                                                           placeholder="">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="field is-horizontal">
+                                        <div style="margin-left: 11%"></div>
+                                        <hr>
+                                        <div class="field-body">
+                                            <div class="field">
+                                                <div class="field is-grouped">
+                                                    <div class="control">
+                                                        {% if status.is_complete == False %}
+                                                            <button type="submit"
+                                                                    data-id="{{ status.budget_set }}"
+                                                                    id="settingsSubmitButton"
+                                                                    class="button is-info">
+                                                                <span>Save</span>
+                                                            </button>
+                                                        {% else %}
+                                                            <button type="submit" id="changeButton"
+                                                                    data-id="{{ status.budget_set }}"
+                                                                    class="button is-info">
+                                                                <span>Save</span>
+                                                            </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+
+
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block extra-scripts %}
+{% endblock %}

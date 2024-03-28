@@ -1,0 +1,26 @@
+<div class="pagin p-2" id="paginator" data-num-pages="{{ assumptions.paginator.num_pages }}">
+    <div class="columns">
+        <div class="column is-half mb-4 mb-md-0" id="current">
+            <span id="page_navigator">Showing {{ assumptions.number }} of {{ assumptions.paginator.num_pages }} Pages</span>
+        </div>
+        <div class="column is-half is-flex is-justify-content-flex-end">
+            <div class="custom-pagination ml-auto">
+                <span>
+                    {% if assumptions.has_previous %}
+                    <a href="?page={{ assumptions.previous_page_number }}" id="previous" class="px-2 previous">Prev</a>
+                    <a href="?page=1" class="px-2 first" id="first">First</a>
+                    {% else %}
+                    <a href="?page=0" id="previous" class="px-2 previous is-hidden">Prev</a>
+                    <a href="?page=1" class="px-2 first is-hidden" id="first">First</a>
+                    {% endif %}
+                </span>
+                {% if assumptions.has_next %}
+                <span id="next_page">
+                    <a class="px-2 next" id="next" href="?page={{ assumptions.next_page_number }}">Next</a>
+                    <a href="?page={{ assumptions.paginator.num_pages }}" class="px-2" id="last">Last </a>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

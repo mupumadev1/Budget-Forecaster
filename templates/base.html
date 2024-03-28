@@ -1,0 +1,296 @@
+{% load filters %}
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" class="has-aside-left has-aside-mobile-transition has-navbar-fixed-top has-aside-expanded">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BudgetIntegration</title>
+
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="https://cdn.materialdesignicons.com/4.9.95/css/materialdesignicons.min.css">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet" type="text/css">
+</head>
+<body>
+<style>
+    .mdi-bell[data-count]:after {
+        position: absolute;
+        right: 0%;
+        top: 1%;
+        content: attr(data-count);
+        font-size: 46%;
+        padding: 1em;
+        border-radius: 999px;
+        line-height: .75em;
+        color: white;
+        background: rgba(255, 0, 0, .85);
+        text-align: center;
+        min-width: 2em;
+        font-weight: bold;
+    }
+</style>
+<nav id="navbar-main" class="navbar is-fixed-top">
+    <div class="navbar-brand">
+        <a class="navbar-item  jb-aside-mobile-toggle is-hidden">
+            <span class="icon"><i class="mdi mdi-front mdi-24px"></i></span>
+        </a>
+        <div class="navbar-item has-control">
+        </div>
+    </div>
+    <div class="navbar-brand is-right">
+        <a class="navbar-item is-hidden-desktop jb-navbar-menu-toggle" data-target="navbar-menu">
+            <span class="icon"><i class="mdi mdi-dots-vertical"></i></span>
+        </a>
+    </div>
+    <div class="navbar-menu fadeIn animated faster" id="navbar-menu">
+        <div class="navbar-end">
+
+            <div class="navbar-item has-dropdown has-dropdown-with-icons has-divider has-user-avatar is-hoverable">
+                <a class="navbar-link is-arrowless">
+                    <div class="is-user-avatar">
+                        <img src="https://avatars.dicebear.com/v2/initials/john-doe.svg" alt="John Doe">
+                    </div>
+                    <div class="is-user-name">
+                        <span>{{ request.user.first_name }} {{ request.user.last_name }}</span></div>
+                    <span class="icon"><i class="mdi mdi-chevron-down"></i></span>
+                </a>
+                <div class="navbar-dropdown">
+
+
+                    <a class="navbar-item">
+                        <span class="icon"><i class="mdi mdi-logout"></i></span>
+                        <span>Log Out</span>
+                    </a>
+                </div>
+            </div>
+            {% if request.user.role == '002' %}
+                <div class="navbar-item has-dropdown has-dropdown-with-icons has-divider is-hoverable">
+                    <a class="navbar-link is-arrowless">
+                <span class="icon has-badge-rounded has-badge-danger" aria-expanded="false">
+                    <i class="pl-1 mdi mdi-bell" id="bellCount" data-count="0"></i>
+
+                </span>
+                    </a>
+                    <div class="navbar-dropdown is-right">
+                        <ul class="navbar-item" id="notify" style=" !important;"></ul>
+                    </div>
+                </div>
+            {% endif %}
+            <a href="{% url 'budgets:logout' %}" title="Log out" class="navbar-item is-desktop-icon-only">
+                <span class="icon"><i class="mdi mdi-logout"></i></span>
+                <span>Log out</span>
+            </a>
+        </div>
+    </div>
+</nav>
+<aside class="aside is-placed-left is-expanded is narrow " style=" overflow-y: auto;">
+    <div class="aside-tools">
+        <div class="aside-tools-label">
+            <span> <a class="jb-aside-toggle has-text-white"><span class="icon"><i
+                    class="mdi mdi-finance"></i></span><b>Budget Integration</b></a></span>
+        </div>
+    </div>
+    <div class="menu is-menu-main">
+        <ul class="menu-list">
+            <li>
+                <a href="{% url 'budgets:home' 'Budget 1' %}"
+                   class="has-icon {% if request.resolver_match.view_name == 'budgets:home' %} is-active {% endif %}">
+                    <span class="icon"><i class="mdi mdi-desktop-mac"></i></span>
+                    <span class="menu-item-label">Dashboard</span>
+                </a>
+            </li>
+            <li>
+                {% if request.user.role != '002' %}
+                    <a {% if request.user|calculate_obj_id != None %} href="{% url 'budgets:update' request.user|calculate_obj_id %}" {% else %}  {% endif %}
+                       class="{% if request.resolver_match.view_name == 'budgets:update' %} is-active {% endif %} has-icon">
+                        <span class="icon"><i class="mdi mdi-table"></i></span>
+                        <span class="menu-item-label">Update Budget</span>
+
+                    </a>
+                {% else %}
+                    <a class="has-icon has-dropdown-icon " aria-haspopup="true"
+                       aria-controls="dropdown-menu">
+                        <span class="icon"><i class="mdi mdi-table"></i></span>
+                        <span class="menu-item-label">Update Budget</span>
+                        <div class="dropdown-icon ">
+                            <span class="icon"><i class="mdi mdi-plus"></i></span>
+                        </div>
+                    </a>
+
+                {% endif %}
+                {% if request.user.role == '002' %}
+
+                    <ul>
+                        <li>
+                            <a data-deptId=13
+                               class="dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                <span>Assets</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a data-deptId=14
+                               class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                <span>Liabilities</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a data-deptId=16
+                               class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                <span>Clearing</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a data-deptId=15
+                               class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                <span>Equity</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a data-deptId=17
+                               class=" dropdown-item dept-list {% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                <span>Income</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="has-dropdown-icon"id="expenseBtn">
+                                <span style="font-weight: 700">Expenses</span>
+                                <div class="dropdown-icon ">
+                                    <span class="icon"><i class="mdi mdi-plus"></i></span>
+                                </div>
+                            </a>
+                            <ul class="is-hidden" id="expenses">
+                                <li>
+                                    <a data-deptId=1
+                                       class="dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>CEO</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=2
+                                       class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Internal Audit</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=3
+                                       class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Supply Chain</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=4
+                                       class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>BDS</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=5
+                                       class=" dropdown-item dept-list {% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Public Relations</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=6
+                                       class="dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Technical</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=7
+                                       class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Information Systems</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=8
+                                       class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Legal & Risk</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=9
+                                       class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Human Capital</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=10
+                                       class=" dropdown-item dept-list {% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Sales & Marketing</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=11
+                                       class=" dropdown-item dept-list{% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Administration</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a data-deptId=12
+                                       class=" dropdown-item dept-list {% if request.resolver_match.view_name == 'budgets:update-expenses' %} is-active{% endif %}">
+                                        <span>Finance</span>
+                                    </a>
+                                </li>
+                            </ul>
+
+                        </li>
+
+                    </ul>
+                {% endif %}
+            </li>
+
+            <li>
+                <a class="has-icon has-dropdown-icon " aria-haspopup="true"
+                   aria-controls="dropdown-menu">
+                    <span class="icon"><i class="mdi mdi-cogs"></i></span>
+                    <span class="menu-item-label">Budget Settings</span>
+                    <div class="dropdown-icon ">
+                        <span class="icon"><i class="mdi mdi-plus"></i></span>
+                    </div>
+                </a>
+
+                <ul>
+                    <li>
+                        <a href="{% url 'budgets:settings' %}"
+                           class=" dropdown-item {% if request.resolver_match.view_name == 'budgets:settings' %} is-active{% endif %}">
+                            <span>Budget</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'budgets:assumptions' %}"
+                           class=" dropdown-item {% if request.resolver_match.view_name == 'budgets:assumptions' %} is-active{% endif %}">
+                            <span>Assumptions</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            {% if request.user.role == '002' %}
+                <li>
+                    <a href="{% url 'budgets:report' %}">
+                        <span class="icon"><i class="mdi mdi-file-excel"></i></span>
+                        <span class="menu-item-label">Reports</span>
+                    </a>
+                </li> <li>
+                    <a href="{% url 'budgets:changelog' %}">
+                        <span class="icon"><i class="mdi mdi-cogs"></i></span>
+                        <span class="menu-item-label">ChangeLog</span>
+                    </a>
+                </li>
+            {% endif %}
+
+        </ul>
+
+    </div>
+</aside>
+{% block content %}{% endblock %}
+
+{% block extra-scripts %}{% endblock %}
+<script type="text/javascript" src="{% static 'js/main.js' %}"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+
+{% include 'footer.html' %}
+</body>
+</html>

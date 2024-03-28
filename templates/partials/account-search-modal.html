@@ -1,0 +1,62 @@
+<div id="account-search-modal" class="modal">
+    <div class="modal-background jb-modal-close"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Search Accounts</p>
+            <button class="delete jb-modal-close" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label">Find By:</label>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <div class="select is-fullwidth">
+                            <select id="search-criteria">
+                                <option disabled selected style="display: none"></option>
+                                <option id="name" value="account_name"> Account Name</option>
+                                <option id="acc-id" value="account_id"> Account ID</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label">Filter :</label>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <div class="control">
+                            <input class="input" type="text" id="account-input-search" disabled>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="table-container" style="height: 150px; overflow-y: scroll;">
+                <table class="table is-bordered is-fullwidth  is-narrow " id="search-modal-table">
+                    <thead class="is-static">
+                    <th>Account ID</th>
+                    <th>Account Name</th>
+                    </thead>
+                    <tbody id="table-body">
+                    {% for obj in obj %}
+
+                        <tr>
+                            <td><a class="has-text-black has-text-centered" href="{% url 'budgets:update' obj.id %}">{{ obj.account_id }}</a></td>
+                            <td><a class="has-text-black has-text-centered" href="{% url 'budgets:update' obj.id %}">{{ obj.account.acctdesc }}</a></td>
+                        </tr>
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button jb-modal-close">Cancel</button>
+        </footer>
+    </div>
+    <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
+</div>

@@ -1,0 +1,19 @@
+<div id="upload-modal" class="modal">
+    <div class="modal-background "></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Upload Budget Set {{ budget_set }}</p>
+            <button class="delete jb-modal-close" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <p>This action will upload budget set {{ budget_set }} and entered budget numbers into sage,</p>
+            <p>Are you sure you wish to continue ?</p>
+        </section>
+
+            <footer class="modal-card-foot">
+                <button class="button jb-modal-close is-small">Cancel</button>
+                <a href="{% url 'budgets:post-to-sage' budget_set %}" class="button is-info is-small">Post</a>
+            </footer>
+    </div>
+    <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
+</div>

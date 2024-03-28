@@ -1,0 +1,9 @@
+{% include 'base.html' %}
+{% block content %}
+    <form method="POST" action="{% url 'budgets:create' %}">
+        {% csrf_token %}
+        <div class="is-center"> {{ form.as_ul }}</div>
+        <button type="submit">save</button>
+
+    </form>
+{% endblock %}
