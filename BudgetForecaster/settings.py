@@ -30,7 +30,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    'daphne',
+    #'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -74,8 +74,8 @@ TEMPLATES = [
     },
 ]
 
-# WSGI_APPLICATION = 'BudgetForecaster.wsgi.application'
-ASGI_APPLICATION = 'BudgetForecaster.asgi.application'
+WSGI_APPLICATION = 'BudgetForecaster.wsgi.application'
+#ASGI_APPLICATION = 'BudgetForecaster.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
@@ -92,9 +92,9 @@ DATABASES = {
     'sql_server': {
         'ENGINE': 'mssql',
         'NAME': 'INFDAT',
-        'USER': 'saservice',  # os.environ.get('DATABASE_USER'),
-        'PASSWORD': 'mJ@PcJ!pNVs2*AW',
-        'HOST': '10.52.11.50',
+        'USER': 'sa',
+        'PASSWORD': 'Admin123',
+        'HOST': 'localhost',
         'PORT': '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
@@ -155,18 +155,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'LOCATION': 'redis://localhost:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
+        'CONFIG': {
+            "hosts": [(
+                'redis://default:O9DIHMBgnKw31JfiEAraG44fktXWFkuT@redis-12184.c299.asia-northeast1-1.gce.cloud.redislabs.com:12184'
+            )],
+            # Update with your Redis server details
+        }
 
     },
 }
-"""'CONFIG': {
-            "hosts": [(
-               # 'redis://default:O9DIHMBgnKw31JfiEAraG44fktXWFkuT@redis-12184.c299.asia-northeast1-1.gce.cloud.redislabs.com:12184'
-                )],
-            # Update with your Redis server details
-        }"""
+"""
+ 'LOCATION': 'redis://localhost:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+"""
 # O9DIHMBgnKw31JfiEAraG44fktXWFkuT!
 # redis-cli -u redis://default:O9DIHMBgnKw31JfiEAraG44fktXWFkuT@redis-12184.c299.asia-northeast1-1.gce.cloud.redislabs.com:12184

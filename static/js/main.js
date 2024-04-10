@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         var updatedObjId = objId.replace(/\d+/, newNumber);
 
                         // Update the window location with the new objId
-                        window.location.href = "/home/" + updatedObjId;
+                        window.location.href = "/home/dept/" + updatedObjId;
                     }
                 })
 
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     return response.json();
                 })
                 .then(result => {
-                    window.location.href = "/home/" + objId
+                    window.location.href = "/home/dept/" + objId
                 })
 
         });
@@ -204,7 +204,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-// setup chat scoket
+/* setup chat scoket
     const notifyScoket = new WebSocket(
         'ws://'
         + window.location.host
@@ -278,7 +278,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
     }
 
-
+*/
     if (asideToggle) {
         asideToggle.addEventListener('click', function () {
             // Check if the aside is being hidden

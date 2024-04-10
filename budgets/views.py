@@ -37,6 +37,48 @@ def index(request, budget_set):
         account_details = BudgetTotals.objects.filter(budget_set=budget_set, posted=False).order_by(
             '-last_updated').annotate(
             count=Count('department__id'))
+        # Income accounts
+        income = BudgetTotals.objects.filter(budget_set=budget_set, department_id=17, posted=False).order_by(
+            '-last_updated')
+
+
+        # Asset accounts
+        asset = BudgetTotals.objects.filter(budget_set=budget_set, department_id=13, posted=False).order_by(
+            '-last_updated')
+
+        # Liability accounts
+        liability = BudgetTotals.objects.filter(budget_set=budget_set, department_id=14, posted=False).order_by(
+            '-last_updated')
+
+        # Equity accounts
+        equity = BudgetTotals.objects.filter(budget_set=budget_set, department_id=15, posted=False).order_by(
+            '-last_updated')
+
+        # Clearing accounts
+        clearing = BudgetTotals.objects.filter(budget_set=budget_set, department_id=16, posted=False).order_by(
+            '-last_updated')
+
+        total_sum = account_details.aggregate(total_sum=Sum('total'))['total_sum']
+
+
+
+        context = {
+            'income': income,
+            'asset': asset,
+            'liability': liability,
+            'equity': equity,
+            'clearing': clearing,
+            'budget_set': budget_set,
+            'total': total_sum
+        }
+        return render(request, 'capex-index.html', context)
+    else:
+        return redirect('budgets:login')
+def dept_user_index(request,budget_set):
+    if request.user.is_authenticated:
+        account_details = BudgetTotals.objects.filter(budget_set=budget_set, posted=False).order_by(
+            '-last_updated').annotate(
+            count=Count('department__id'))
 
         # CEO department
         ceo = BudgetTotals.objects.filter(budget_set=budget_set, department_id=1, posted=False).order_by(
@@ -86,39 +128,10 @@ def index(request, budget_set):
         # Finance department
         finance = BudgetTotals.objects.filter(budget_set=budget_set, department_id=12, posted=False).order_by(
             '-last_updated')
-
-        # Income accounts
-        income = BudgetTotals.objects.filter(budget_set=budget_set, department_id=17, posted=False).order_by(
-            '-last_updated')
-
-
-        # Asset accounts
-        asset = BudgetTotals.objects.filter(budget_set=budget_set, department_id=13, posted=False).order_by(
-            '-last_updated')
-
-        # Liability accounts
-        liability = BudgetTotals.objects.filter(budget_set=budget_set, department_id=14, posted=False).order_by(
-            '-last_updated')
-
-        # Equity accounts
-        equity = BudgetTotals.objects.filter(budget_set=budget_set, department_id=15, posted=False).order_by(
-            '-last_updated')
-
-        # Clearing accounts
-        clearing = BudgetTotals.objects.filter(budget_set=budget_set, department_id=16, posted=False).order_by(
-            '-last_updated')
-        if request.user.role == '002':
-            total_sum = account_details.aggregate(total_sum=Sum('total'))['total_sum']
-        elif not request.user.role == '002':
-            total_sum = account_details.filter(department=request.user.department).aggregate(total_sum=Sum('total'))['total_sum']
-
+        total_sum = account_details.filter(department=request.user.department).aggregate(total_sum=Sum('total'))[
+            'total_sum']
 
         context = {
-            'income': income,
-            'asset': asset,
-            'liability': liability,
-            'equity': equity,
-            'clearing': clearing,
             'ceo': ceo,
             'internal_audit': internal_audit,
             'supply_chain': supply_chain,
@@ -134,11 +147,87 @@ def index(request, budget_set):
             'budget_set': budget_set,
             'total': total_sum
         }
-        return render(request, 'index.html', context)
+        return render(request, 'index-deptuser.html', context)
     else:
         return redirect('budgets:login')
 
 
+def opex_index(request, budget_set):
+    if request.user.is_authenticated:
+        account_details = BudgetTotals.objects.filter(budget_set=budget_set, posted=False).order_by(
+            '-last_updated').annotate(
+            count=Count('department__id'))
+
+        # CEO department
+        ceo = BudgetTotals.objects.filter(budget_set=budget_set, department_id=1, posted=False).order_by(
+            '-last_updated')
+
+        # Internal Audit department
+        internal_audit = BudgetTotals.objects.filter(budget_set=budget_set, department_id=2, posted=False).order_by(
+            '-last_updated')
+
+        # Supply Chain department
+        supply_chain = BudgetTotals.objects.filter(budget_set=budget_set, department_id=3, posted=False).order_by(
+            '-last_updated')
+
+        # BDS department
+        bds = BudgetTotals.objects.filter(budget_set=budget_set, department_id=4, posted=False).order_by(
+            '-last_updated')
+
+        # Public Relations department
+        public_relations = BudgetTotals.objects.filter(budget_set=budget_set, department_id=5, posted=False).order_by(
+            '-last_updated')
+
+        # Technical department
+        technical = BudgetTotals.objects.filter(budget_set=budget_set, department_id=6, posted=False).order_by(
+            '-last_updated')
+        technical_total = technical.aggregate(total_technical=Sum('total'))['total_technical']
+
+        # Information System department
+        information_system = BudgetTotals.objects.filter(budget_set=budget_set, department_id=7, posted=False).order_by(
+            '-last_updated')
+
+        # Legal Risk department
+        legal_risk = BudgetTotals.objects.filter(budget_set=budget_set, department_id=8, posted=False).order_by(
+            '-last_updated')
+
+        # Human Capital department
+        human_capital = BudgetTotals.objects.filter(budget_set=budget_set, department_id=9, posted=False).order_by(
+            '-last_updated')
+
+        # Sales & Marketing department
+        sales_marketing = BudgetTotals.objects.filter(budget_set=budget_set, department_id=10, posted=False).order_by(
+            '-last_updated')
+
+        # Admin department
+        admin = BudgetTotals.objects.filter(budget_set=budget_set, department_id=11, posted=False).order_by(
+            '-last_updated')
+
+        # Finance department
+        finance = BudgetTotals.objects.filter(budget_set=budget_set, department_id=12, posted=False).order_by(
+            '-last_updated')
+        total_sum = account_details.aggregate(total_sum=Sum('total'))[
+            'total_sum']
+
+        context = {
+            'ceo': ceo,
+            'internal_audit': internal_audit,
+            'supply_chain': supply_chain,
+            'bds': bds,
+            'public_relations': public_relations,
+            'technical': technical,
+            'information_systems': information_system,
+            'legal_risk': legal_risk,
+            'human_capital': human_capital,
+            'sales_marketing': sales_marketing,
+            'admin': admin,
+            'finance': finance,
+            'budget_set': budget_set,
+            'total': total_sum
+        }
+        return render(request, 'opex-index.html', context)
+    else:
+        return redirect('budgets:login')
 
 def generate_excel(request):
     # Define the header row for the Excel file
@@ -801,7 +890,7 @@ def user_login(request):
                 if user.role != '002':
                     active = BudgetStatus.objects.get(department=request.user.department, is_active=True)
 
-                    return redirect('budgets:home', f'{active.budget_set}')
+                    return redirect('budgets:home-dept', f'{active.budget_set}')
                 """user_obj = get_object_or_404(Users, username=username)
                 totp = pyotp.TOTP(user.otp_base32).now()
                 user_obj.login_otp = totp
