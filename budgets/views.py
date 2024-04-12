@@ -12,8 +12,8 @@ from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Sum, F
-from django.http import JsonResponse, HttpResponse
+from django.db.models import Count, Sum, F, Q
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render, redirect, get_object_or_404
 from openpyxl.styles import colors
 from openpyxl.workbook import Workbook
@@ -28,6 +28,7 @@ from budgets.models import BudgetLines, Users, Glafs, BudgetComments, BudgetStat
 def custom_404(request, exception):
     return render(request, '404.html', status=404)
 
+
 def custom_500(request, exception):
     return render(request, '500.html', status=500)
 
@@ -38,111 +39,233 @@ def index(request, budget_set):
             '-last_updated').annotate(
             count=Count('department__id'))
 
-        # CEO department
-        ceo = BudgetTotals.objects.filter(budget_set=budget_set, department_id=1, posted=False).order_by(
-            '-last_updated')
-
-        # Internal Audit department
-        internal_audit = BudgetTotals.objects.filter(budget_set=budget_set, department_id=2, posted=False).order_by(
-            '-last_updated')
-
-        # Supply Chain department
-        supply_chain = BudgetTotals.objects.filter(budget_set=budget_set, department_id=3, posted=False).order_by(
-            '-last_updated')
-
-        # BDS department
-        bds = BudgetTotals.objects.filter(budget_set=budget_set, department_id=4, posted=False).order_by(
-            '-last_updated')
-
-        # Public Relations department
-        public_relations = BudgetTotals.objects.filter(budget_set=budget_set, department_id=5, posted=False).order_by(
-            '-last_updated')
-
-        # Technical department
-        technical = BudgetTotals.objects.filter(budget_set=budget_set, department_id=6, posted=False).order_by(
-            '-last_updated')
-        technical_total = technical.aggregate(total_technical=Sum('total'))['total_technical']
-
-        # Information System department
-        information_system = BudgetTotals.objects.filter(budget_set=budget_set, department_id=7, posted=False).order_by(
-            '-last_updated')
-
-        # Legal Risk department
-        legal_risk = BudgetTotals.objects.filter(budget_set=budget_set, department_id=8, posted=False).order_by(
-            '-last_updated')
-
-        # Human Capital department
-        human_capital = BudgetTotals.objects.filter(budget_set=budget_set, department_id=9, posted=False).order_by(
-            '-last_updated')
-
-        # Sales & Marketing department
-        sales_marketing = BudgetTotals.objects.filter(budget_set=budget_set, department_id=10, posted=False).order_by(
-            '-last_updated')
-
-        # Admin department
-        admin = BudgetTotals.objects.filter(budget_set=budget_set, department_id=11, posted=False).order_by(
-            '-last_updated')
-
-        # Finance department
-        finance = BudgetTotals.objects.filter(budget_set=budget_set, department_id=12, posted=False).order_by(
-            '-last_updated')
-
         # Income accounts
         income = BudgetTotals.objects.filter(budget_set=budget_set, department_id=17, posted=False).order_by(
             '-last_updated')
-
+        paginator = Paginator(income, 5)
+        page_number = request.GET.get('page')
+        income_obj = paginator.get_page(page_number)
 
         # Asset accounts
         asset = BudgetTotals.objects.filter(budget_set=budget_set, department_id=13, posted=False).order_by(
             '-last_updated')
+        paginator = Paginator(asset, 5)
+        page_number = request.GET.get('page')
+        asset_obj = paginator.get_page(page_number)
 
         # Liability accounts
         liability = BudgetTotals.objects.filter(budget_set=budget_set, department_id=14, posted=False).order_by(
             '-last_updated')
+        paginator = Paginator(liability, 5)
+        page_number = request.GET.get('page')
+        liability_obj = paginator.get_page(page_number)
 
         # Equity accounts
         equity = BudgetTotals.objects.filter(budget_set=budget_set, department_id=15, posted=False).order_by(
             '-last_updated')
+        paginator = Paginator(equity, 5)
+        page_number = request.GET.get('page')
+        equity_obj = paginator.get_page(page_number)
 
         # Clearing accounts
         clearing = BudgetTotals.objects.filter(budget_set=budget_set, department_id=16, posted=False).order_by(
             '-last_updated')
-        if request.user.role == '002':
-            total_sum = account_details.aggregate(total_sum=Sum('total'))['total_sum']
-        elif not request.user.role == '002':
-            total_sum = account_details.filter(department=request.user.department).aggregate(total_sum=Sum('total'))['total_sum']
+        paginator = Paginator(clearing, 5)
+        page_number = request.GET.get('page')
+        clearing_obj = paginator.get_page(page_number)
 
+        total_sum = account_details.aggregate(total_sum=Sum('total'))['total_sum']
 
         context = {
-            'income': income,
-            'asset': asset,
-            'liability': liability,
-            'equity': equity,
-            'clearing': clearing,
-            'ceo': ceo,
-            'internal_audit': internal_audit,
-            'supply_chain': supply_chain,
-            'bds': bds,
-            'public_relations': public_relations,
-            'technical': technical,
-            'information_systems': information_system,
-            'legal_risk': legal_risk,
-            'human_capital': human_capital,
-            'sales_marketing': sales_marketing,
-            'admin': admin,
-            'finance': finance,
+            'income': income_obj,
+            'asset': asset_obj,
+            'liability': liability_obj,
+            'equity': equity_obj,
+            'clearing': clearing_obj,
             'budget_set': budget_set,
             'total': total_sum
         }
-        return render(request, 'index.html', context)
+        return render(request, 'capex-index.html', context)
+    else:
+        return redirect('budgets:login')
+
+def dept_user_index(request, budget_set):
+    if request.user.is_authenticated:
+        department_conditions = Q()
+        for department_id in range(1, 13):  # Assuming departments IDs range from 1 to 12
+            department_conditions |= Q(department_id=department_id)
+
+        # Fetch all relevant budget totals in a single query
+        budget_totals = BudgetTotals.objects.filter(
+            Q(budget_set=budget_set) & Q(posted=False) & department_conditions
+        ).order_by('-department_id', '-last_updated')
+
+        # Create separate variables for each department
+        ceo = budget_totals.filter(department_id=1)
+        paginator = Paginator(ceo, 5)
+        page_number = request.GET.get('page')
+        ceo_obj = paginator.get_page(page_number)
+        internal_audit = budget_totals.filter(department_id=2)
+        paginator = Paginator(internal_audit, 5)
+        page_number = request.GET.get('page')
+        internal_audit_obj = paginator.get_page(page_number)
+        supply_chain = budget_totals.filter(department_id=3)
+        paginator = Paginator(supply_chain, 5)
+        page_number = request.GET.get('page')
+        supply_chain_obj = paginator.get_page(page_number)
+        bds = budget_totals.filter(department_id=4)
+        paginator = Paginator(bds, 5)
+        page_number = request.GET.get('page')
+        bds_obj = paginator.get_page(page_number)
+        public_relations = budget_totals.filter(department_id=5)
+        paginator = Paginator(public_relations, 5)
+        page_number = request.GET.get('page')
+        public_relations_obj = paginator.get_page(page_number)
+        technical = budget_totals.filter(department_id=6)
+        paginator = Paginator(technical, 5)
+        page_number = request.GET.get('page')
+        technical_obj = paginator.get_page(page_number)
+        information_systems = budget_totals.filter(department_id=7)
+        paginator = Paginator(information_systems, 5)
+        page_number = request.GET.get('page')
+        information_systems_obj = paginator.get_page(page_number)
+        legal_risk = budget_totals.filter(department_id=8)
+        paginator = Paginator(legal_risk, 5)
+        page_number = request.GET.get('page')
+        legal_risk_obj = paginator.get_page(page_number)
+        human_capital = budget_totals.filter(department_id=9)
+        paginator = Paginator(human_capital, 5)
+        page_number = request.GET.get('page')
+        human_capital_obj = paginator.get_page(page_number)
+        sales_marketing = budget_totals.filter(department_id=10)
+        paginator = Paginator(sales_marketing, 5)
+        page_number = request.GET.get('page')
+        sales_marketing_obj = paginator.get_page(page_number)
+        admin = budget_totals.filter(department_id=11)
+        paginator = Paginator(admin, 5)
+        page_number = request.GET.get('page')
+        admin_page_obj = paginator.get_page(page_number)
+        finance = budget_totals.filter(department_id=12)
+        paginator = Paginator(finance, 5)
+        page_number = request.GET.get('page')
+        finance_page_obj = paginator.get_page(page_number)
+        # Calculate total sum
+        total_sum = budget_totals.filter(department=request.user.department).aggregate(total_sum=Sum('total'))['total_sum']
+
+        # Populate context variable
+        context = {
+            'ceo': ceo_obj,
+            'internal_audit': internal_audit_obj,
+            'supply_chain': supply_chain_obj,
+            'bds': bds_obj,
+            'public_relations': public_relations_obj,
+            'technical': technical_obj,
+            'information_systems': information_systems_obj,
+            'legal_risk': legal_risk_obj,
+            'human_capital': human_capital_obj,
+            'sales_marketing': sales_marketing_obj,
+            'admin': admin_page_obj,
+            'finance': finance_page_obj,
+            'budget_set': budget_set,
+            'total': total_sum
+        }
+        return render(request, 'index-deptuser.html', context)
     else:
         return redirect('budgets:login')
 
 
+def opex_index(request, budget_set):
+    if request.user.is_authenticated:
+        if not budget_set:
+            return HttpResponseBadRequest("Invalid budget set")
+
+        # Combine all department conditions using Q objects
+        department_conditions = Q()
+        for department_id in range(1, 13):  # Assuming departments IDs range from 1 to 12
+            department_conditions |= Q(department_id=department_id)
+
+        # Fetch all relevant budget totals in a single query
+        budget_totals = BudgetTotals.objects.filter(
+            Q(budget_set=budget_set) & Q(posted=False) & department_conditions
+        ).order_by('-department_id', '-last_updated')
+
+        # Create separate variables for each department
+        ceo = budget_totals.filter(department_id=1)
+        paginator = Paginator(ceo, 5)
+        page_number = request.GET.get('page')
+        ceo_obj = paginator.get_page(page_number)
+        internal_audit = budget_totals.filter(department_id=2)
+        paginator = Paginator(internal_audit, 5)
+        page_number = request.GET.get('page')
+        internal_audit_obj = paginator.get_page(page_number)
+        supply_chain = budget_totals.filter(department_id=3)
+        paginator = Paginator(supply_chain, 5)
+        page_number = request.GET.get('page')
+        supply_chain_obj = paginator.get_page(page_number)
+        bds = budget_totals.filter(department_id=4)
+        paginator = Paginator(bds, 5)
+        page_number = request.GET.get('page')
+        bds_obj = paginator.get_page(page_number)
+        public_relations = budget_totals.filter(department_id=5)
+        paginator = Paginator(public_relations, 5)
+        page_number = request.GET.get('page')
+        public_relations_obj = paginator.get_page(page_number)
+        technical = budget_totals.filter(department_id=6)
+        paginator = Paginator(technical, 5)
+        page_number = request.GET.get('page')
+        technical_obj = paginator.get_page(page_number)
+        information_systems = budget_totals.filter(department_id=7)
+        paginator = Paginator(information_systems, 5)
+        page_number = request.GET.get('page')
+        information_systems_obj = paginator.get_page(page_number)
+        legal_risk = budget_totals.filter(department_id=8)
+        paginator = Paginator(legal_risk, 5)
+        page_number = request.GET.get('page')
+        legal_risk_obj = paginator.get_page(page_number)
+        human_capital = budget_totals.filter(department_id=9)
+        paginator = Paginator(human_capital, 5)
+        page_number = request.GET.get('page')
+        human_capital_obj = paginator.get_page(page_number)
+        sales_marketing = budget_totals.filter(department_id=10)
+        paginator = Paginator(sales_marketing, 5)
+        page_number = request.GET.get('page')
+        sales_marketing_obj = paginator.get_page(page_number)
+        admin = budget_totals.filter(department_id=11)
+        paginator = Paginator(admin, 5)
+        page_number = request.GET.get('page')
+        admin_page_obj = paginator.get_page(page_number)
+        finance = budget_totals.filter(department_id=12)
+        paginator = Paginator(finance, 5)
+        page_number = request.GET.get('page')
+        finance_page_obj = paginator.get_page(page_number)
+        # Calculate total sum
+        total_sum = budget_totals.aggregate(total_sum=Sum('total'))['total_sum']
+
+        # Populate context variable
+        context = {
+            'ceo': ceo_obj,
+            'internal_audit': internal_audit_obj,
+            'supply_chain': supply_chain_obj,
+            'bds': bds_obj,
+            'public_relations': public_relations_obj,
+            'technical': technical_obj,
+            'information_systems': information_systems_obj,
+            'legal_risk': legal_risk_obj,
+            'human_capital': human_capital_obj,
+            'sales_marketing': sales_marketing_obj,
+            'admin': admin_page_obj,
+            'finance': finance_page_obj,
+            'budget_set': budget_set,
+            'total': total_sum
+        }
+        return render(request, 'opex-index.html', context)
+    else:
+        return redirect('budgets:login')
+
 
 def generate_excel(request):
     # Define the header row for the Excel file
-    excel_header = ['BUDGET SUMMARY', 'Q1', 'Q2', 'H1', 'Q3', 'Q4', 'H2','TOTAL']
+    excel_header = ['BUDGET SUMMARY', 'Q1', 'Q2', 'H1', 'Q3', 'Q4', 'H2', 'TOTAL']
 
     # Define quarter and half period ranges
     quarter_periods = [1, 2, 3, 4]
@@ -161,7 +284,7 @@ def generate_excel(request):
                 budget_totals[budget_total.account]['H1'] += value
             if period in half2_periods:
                 budget_totals[budget_total.account]['H2'] += value
-        budget_totals[budget_total.account]['TOTAL'] = getattr(budget_total,'total',Decimal('0'))
+        budget_totals[budget_total.account]['TOTAL'] = getattr(budget_total, 'total', Decimal('0'))
 
     # Create a new Excel workbook
     workbook = Workbook()
@@ -171,7 +294,7 @@ def generate_excel(request):
     for col, header in enumerate(excel_header, start=1):
         cell = sheet.cell(row=1, column=col)
         cell.value = header
-        cell.font = cell.font.copy(bold=True,color=colors.WHITE)
+        cell.font = cell.font.copy(bold=True, color=colors.WHITE)
         cell.fill = cell.fill.copy(fill_type='solid', start_color='00008B')
 
     # Writing the data rows
@@ -190,13 +313,14 @@ def generate_excel(request):
 
     return response
 
-def department_budget_settings(request,dept_id):
+
+def department_budget_settings(request, dept_id):
     if request.user.is_authenticated:
         obj = BudgetStatus.objects.filter(department_id=dept_id).all()
         if request.GET.get('complete') == '1':
             if request.user.role != '002':
                 message = f"{request.GET.get('budget_id')} from {request.user.department.name} department has been marked as complete"
-                    # Send the notification message
+                # Send the notification message
                 channel_layer = get_channel_layer()
                 async_to_sync(channel_layer.group_send)(
                     'public_room',
@@ -205,11 +329,14 @@ def department_budget_settings(request,dept_id):
                         "message": message
                     }
                 )
-            BudgetStatus.objects.filter(department=request.user.department,budget_set=request.GET.get('budget_id')).update(is_complete=True,is_active=False,comment=request.GET.get('comment'))
-            return JsonResponse({'result':'success'})
+            BudgetStatus.objects.filter(department=request.user.department,
+                                        budget_set=request.GET.get('budget_id')).update(is_complete=True,
+                                                                                        is_active=False,
+                                                                                        comment=request.GET.get(
+                                                                                            'comment'))
+            return JsonResponse({'result': 'success'})
         elif request.GET.get('incomplete') == '1':
-            if request.user.role != '002' :
-
+            if request.user.role != '002':
                 message = f"Changes to be made to {request.GET.get('budget_id')} from {request.user.department.name} department require your approval"
 
                 # Send the notification message
@@ -222,7 +349,9 @@ def department_budget_settings(request,dept_id):
                     }
                 )
             budget = request.GET.get('budget_id')
-            BudgetStatus.objects.filter(department=request.user.department, budget_set=budget).update(is_complete=False,comment=request.GET.get('comment'))
+            BudgetStatus.objects.filter(department=request.user.department, budget_set=budget).update(is_complete=False,
+                                                                                                      comment=request.GET.get(
+                                                                                                          'comment'))
             return JsonResponse({'result': 'success'})
         return render(request, 'budget-settings.html', {'budgetStatus': obj})
     else:
@@ -235,7 +364,7 @@ def budget_settings(request):
         if request.GET.get('complete') == '1':
             if request.user.role != '002':
                 message = f"{request.GET.get('budget_id')} from {request.user.department.name} department has been marked as complete"
-                    # Send the notification message
+                # Send the notification message
                 channel_layer = get_channel_layer()
                 async_to_sync(channel_layer.group_send)(
                     'public_room',
@@ -244,10 +373,14 @@ def budget_settings(request):
                         "message": message
                     }
                 )
-            BudgetStatus.objects.filter(department=request.user.department,budget_set=request.GET.get('budget_id')).update(is_complete=True,is_active=False, comment=request.GET.get('comment'))
-            return JsonResponse({'result':'success'})
+            BudgetStatus.objects.filter(department=request.user.department,
+                                        budget_set=request.GET.get('budget_id')).update(is_complete=True,
+                                                                                        is_active=False,
+                                                                                        comment=request.GET.get(
+                                                                                            'comment'))
+            return JsonResponse({'result': 'success'})
         elif request.GET.get('incomplete') == '1':
-            if request.user.role != '002' :
+            if request.user.role != '002':
                 message = f"Changes to be made to {request.GET.get('budget_id')} from {request.user.department.name} department require your approval"
 
                 # Send the notification message
@@ -260,13 +393,13 @@ def budget_settings(request):
                     }
                 )
             budget = request.GET.get('budget_id')
-            BudgetStatus.objects.filter(department=request.user.department, budget_set=budget).update(is_complete=False,comment=request.GET.get('comment'))
+            BudgetStatus.objects.filter(department=request.user.department, budget_set=budget).update(is_complete=False,
+                                                                                                      comment=request.GET.get(
+                                                                                                          'comment'))
             return JsonResponse({'result': 'success'})
         return render(request, 'budget-settings.html', {'budgetStatus': obj})
     else:
         return redirect('budgets:login')
-
-
 
 
 def budget_assumptions(request):
@@ -301,8 +434,8 @@ def budget_assumptions(request):
         paginator = Paginator(obj, 10)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
-        context =  {'assumptions': page_obj, 'currency': currency_obj, 'department': request.user.department.name}
-        return render(request, 'assumptions.html',context)
+        context = {'assumptions': page_obj, 'currency': currency_obj, 'department': request.user.department.name}
+        return render(request, 'assumptions.html', context)
     else:
         return redirect('budgets:login')
 
@@ -315,18 +448,19 @@ def accounts_search(request):
 
     filter = request.GET.get('filter')
     value = request.GET.get('value')
+    active = BudgetStatus.objects.filter(is_active=True).values('budget_set')
 
     if filter in field_mapping and value:
         if request.user.role != '002':
+
             account_info = BudgetTotals.objects.filter(**{field_mapping[filter]: value},
                                                        department=request.user.department).values(
                 'account_id', 'account__acctdesc', 'id').all()
             return JsonResponse({'data': list(account_info)}, status=200)
         else:
-            account_info = BudgetTotals.objects.filter(**{field_mapping[filter]: value}).values(
+            account_info = BudgetTotals.objects.filter(Q(budget_set__in=active) ,**{field_mapping[filter]: value}).values(
                 'account_id', 'account__acctdesc', 'id').all()
             return JsonResponse({'data': list(account_info)}, status=200)
-
 
 
 def get_budget_set(request, object_id, budget_set):
@@ -391,17 +525,19 @@ def create_user(request):
     return render(request, 'user-create.html', {'form': UserCreate(request.GET)})
 
 
-def toggle_status_incomplete(request,id):
+def toggle_status_incomplete(request, id):
     budget_obj = BudgetStatus.objects.get(id=id)
     budget_obj.is_complete = False
     budget_obj.save()
     return redirect('budgets:settings')
 
-def toggle_status_complete(request,id):
+
+def toggle_status_complete(request, id):
     budget_obj = BudgetStatus.objects.get(id=id)
     budget_obj.is_complete = True
     budget_obj.save()
     return redirect('budgets:settings')
+
 
 def toggle_status_false(request, id):
     budget_obj = BudgetStatus.objects.get(id=id)
@@ -410,7 +546,7 @@ def toggle_status_false(request, id):
     return redirect('budgets:settings')
 
 
-def toggle_status_true(request,id):
+def toggle_status_true(request, id):
     try:
         budget_obj = BudgetStatus.objects.get(id=id)
         budget_obj.is_active = True
@@ -423,6 +559,7 @@ def toggle_status_true(request,id):
 
 def clear_budget_line(request, object_id):
     line = get_object_or_404(BudgetLines, id=object_id)
+    dept=line.department_id
     with transaction.atomic():
         BudgetTotals.objects.filter(account_id=line.account.acctid).update(
             total=F('total') - line.total,
@@ -442,7 +579,8 @@ def clear_budget_line(request, object_id):
             last_updated_by_id=request.user.id
         )
         line.delete()
-    return redirect('budgets:home', 'Budget 1')
+    return redirect('budgets:update-expenses', dept)
+
 
 def changelog(request):
     if request.user.is_authenticated:
@@ -450,24 +588,26 @@ def changelog(request):
         paginator = Paginator(obj, 10)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
-        return render(request,'changelog.html', {'changes':page_obj})
+        return render(request, 'changelog.html', {'changes': page_obj})
     else:
         return redirect('budgets:login')
 
+
 def update(request, object_id):
     if request.user.is_authenticated:
-        if request.user.role != '002':
-            single_object = BudgetTotals.objects.filter(department=request.user.department)
-        else:
-            single_object = BudgetTotals.objects.all()
 
         obj_t = get_object_or_404(BudgetTotals, id=object_id)
         lines = BudgetLines.objects.filter(account__acctid=obj_t.account.acctid)
 
         active = get_object_or_404(BudgetStatus, department_id=obj_t.department.id, is_active=True)
         if active:
+            if request.user.role != '002':
+                single_object = BudgetTotals.objects.filter(budget_set=active.budget_set,department=request.user.department)
+            else:
+                single_object = BudgetTotals.objects.filter(budget_set=active.budget_set)
 
-            first_dept_obj = BudgetTotals.objects.filter(budget_set=active.budget_set, department_id=obj_t.department.id,
+            first_dept_obj = BudgetTotals.objects.filter(budget_set=active.budget_set,
+                                                         department_id=obj_t.department.id,
                                                          id=object_id).first()
             user = get_object_or_404(Users, id=request.user.id)
             obj = get_object_or_404(BudgetTotals, id=first_dept_obj.id)
@@ -480,8 +620,10 @@ def update(request, object_id):
             prev_obj = BudgetTotals.objects.filter(id__lt=obj.id, department_id=obj_t.department.id,
                                                    budget_set=active.budget_set).order_by('-id').first()
 
-            first_obj = BudgetTotals.objects.filter(department_id=obj_t.department.id, budget_set=active.budget_set).first()
-            last_obj = BudgetTotals.objects.filter(department_id=obj_t.department.id, budget_set=active.budget_set).last()
+            first_obj = BudgetTotals.objects.filter(department_id=obj_t.department.id,
+                                                    budget_set=active.budget_set).first()
+            last_obj = BudgetTotals.objects.filter(department_id=obj_t.department.id,
+                                                   budget_set=active.budget_set).last()
 
             form = BudgetEditForm()
 
@@ -587,24 +729,28 @@ def update(request, object_id):
         return redirect('budgets:login')
 
 
-
-def delete_assumption(request,id):
+def delete_assumption(request, id):
     BudgetAssumptions.objects.filter(id=id).delete()
     return redirect('budgets:assumptions')
-def delete_currency(request,id):
+
+
+def delete_currency(request, id):
     Currency.objects.filter(id=id).delete()
     return redirect('budgets:assumptions')
 
+
 def update_expenses(request, department_id):
     if request.user.is_authenticated:
-        if request.user.role != '002':
-            single_object = BudgetTotals.objects.filter(department=request.user.department)
-        else:
-            single_object = BudgetTotals.objects.all()
         active = get_object_or_404(BudgetStatus, department_id=department_id, is_active=True)
 
         if active:
-            first_dept_obj = BudgetTotals.objects.filter(budget_set=active.budget_set, department_id=department_id).first()
+            if request.user.role != '002':
+                single_object = BudgetTotals.objects.filter(budget_set=active.budget_set,department=request.user.department)
+            else:
+                single_object = BudgetTotals.objects.filter(budget_set=active.budget_set)
+
+            first_dept_obj = BudgetTotals.objects.filter(budget_set=active.budget_set,
+                                                         department_id=department_id).first()
             user = get_object_or_404(Users, id=request.user.id)
             obj = get_object_or_404(BudgetTotals, id=first_dept_obj.id)
             if request.user.role != '002':
@@ -723,6 +869,7 @@ def update_expenses(request, department_id):
     else:
         return redirect('budgets:login')
 
+
 def saveComments(request):
     if request.method == 'GET':
         budget = request.POST.get('budget_id')
@@ -737,7 +884,7 @@ def saveComments(request):
 
 
 def post_to_sage(request, budget_set):
-    objects = BudgetTotals.objects.filter(budget_set=budget_set)
+    objects = BudgetTotals.objects.filter(budget_set=budget_set).exclude(total=0)
     income_objects = BudgetTotals.objects.filter(account__acctid__startswith=5)
     asset_objects = BudgetTotals.objects.filter(account__acctid__startswith=1)
     liability_objects = BudgetTotals.objects.filter(account__acctid__startswith=2)
@@ -801,7 +948,7 @@ def user_login(request):
                 if user.role != '002':
                     active = BudgetStatus.objects.get(department=request.user.department, is_active=True)
 
-                    return redirect('budgets:home', f'{active.budget_set}')
+                    return redirect('budgets:home-dept', f'{active.budget_set}')
                 """user_obj = get_object_or_404(Users, username=username)
                 totp = pyotp.TOTP(user.otp_base32).now()
                 user_obj.login_otp = totp

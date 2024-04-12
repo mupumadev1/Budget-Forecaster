@@ -1,0 +1,135 @@
+ <div class="card has-table has-mobile-sort-spaced">
+                    <header class="card-header">
+                        <p class="card-header-title">
+                            <span class="icon"><i class="mdi mdi-account-multiple"></i></span>
+                            {{dept_name}} Accounts
+                        </p>
+                        <select class="select my-2" style="border:0" name="budget_set"
+                                onchange="navigateToBudget(this.value)">
+
+                            <option value="1" {% if budget_set == 'Budget 1' %} selected {% endif %}>Budget Set
+                                1
+                            </option>
+                            <option value="2" {% if budget_set == 'Budget 2' %} selected {% endif %}>Budget Set
+                                2
+                            </option>
+                            <option value="3" {% if budget_set == 'Budget 3' %} selected {% endif %}>Budget Set 3
+                            </option>
+
+                        </select>
+                        <a class="card-header-icon accordion-button">
+                            <span class="icon"><i class="mdi mdi-plus-thick mdi-18px"></i></span>
+                        </a>
+
+                    </header>
+                    <div class="card-content parent-accordion-content is-hidden ">
+                        {% if dept %}
+                            <div class="level " style="margin-top:1.5rem; font-weight:bold;">
+                                <div class="level-left">
+                                    <p class="mx-2">{{ dept_name }} Total : ZMW {{ dept|calculate_sum }}</p>
+
+                                </div>
+                                <div class="level-right">
+                                    <p class="mx-2">Budget Status:</p>
+                                    <p class="button is-narrow is-small {% if dept|budget_active_filter == False %} is-danger-passive {% else %} is-info {% endif %} is-outlined mr-2"
+                                       style="border-radius: 50px">{% if dept|budget_active_filter == False %}
+                                        Inactive{% else %} Active {% endif %}</p>
+                                    <a href="{% url 'budgets:department-settings' dept|get_dept %}"
+                                       class="button is-narrow is-small {% if dept|budget_status_filter == False %} is-danger {% else %}is-primary {% endif %}is-outlined"
+                                       style="border-radius: 50px">{% if dept|budget_status_filter == False %}
+                                        Incomplete {% else %} Complete{% endif %}</a>
+                                </div>
+                            </div>
+                            <div class="table-wrapper has-mobile-cards"
+                                 style="overflow-y:auto;max-height:400px;">
+                                <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                                       role="grid">
+                                    <thead>
+                                    <tr>
+                                        <th>Account ID</th>
+                                        <th>Account Name</th>
+                                        <th>Currency</th>
+                                        <th>Year</th>
+                                        <th>Total</th>
+                                        <th>Jan</th>
+                                        <th>Feb</th>
+                                        <th>Mar</th>
+                                        <th>Apr</th>
+                                        <th role="columnheader">May</th>
+                                        <th role="columnheader">Jun</th>
+                                        <th role="columnheader">Jul</th>
+                                        <th role="columnheader">Aug</th>
+                                        <th role="columnheader">Sep</th>
+                                        <th role="columnheader">Oct</th>
+                                        <th role="columnheader">Nov</th>
+                                        <th role="columnheader">Dec</th>
+                                        <th></th>
+
+                                    </tr>
+                                    </thead>
+                                    <tbody class="budget-table-body" role="rowgroup">
+                                    {% for acc in dept %}
+                                        {% if acc %}
+                                            <tr role="row" data-total="{{ acc.total }}">
+                                                <td data-label="Account id">{{ acc.account.acctfmttd }}</td>
+                                                <td data-label="Account name"
+                                                    style="width: 10%;">{{ acc.account.acctdesc }}</td>
+                                                <td>{{ acc.currency.currency }}</td>
+                                                <td>{{ acc.year }}</td>
+                                                <td data-label="Budget Total">{{ acc.total }}</td>
+                                                <td data-label="Jan">{{ acc.period1 }}</td>
+                                                <td data-label="Feb">{{ acc.period2 }}
+                                                </td>
+                                                <td data-label="Mar">{{ acc.period3 }}
+                                                </td>
+                                                <td data-label="Apr">{{ acc.period4 }}
+                                                </td>
+                                                <td data-label="May">{{ acc.period5 }}
+                                                </td>
+                                                <td data-label="Jun">{{ acc.period6 }}
+                                                </td>
+                                                <td data-label="Jul">{{ acc.period7 }}
+                                                </td>
+                                                <td data-label="Aug">{{ acc.period8 }}
+                                                </td>
+                                                <td data-label="Sep">{{ acc.period9 }}
+                                                </td>
+                                                <td data-label="Oct">{{ acc.period10 }}
+                                                </td>
+                                                <td data-label="Nov">{{ acc.period11 }}
+                                                </td>
+                                                <td data-label="Dec">{{ acc.period12 }}
+                                                </td>
+                                                <td class="is-actions-cell">
+                                                    <div class="buttons is-right">
+                                                        <a {% if dept|budget_active_filter != False %}
+                                                            href="{% url 'budgets:update' acc.id %}" {% else %} {% endif %}
+                                                            class="button is-small is-light" type="button">
+                                                                <span class="icon"><i
+                                                                        class="mdi mdi-file-edit"></i></span>
+                                                        </a>
+                                                        <a {% if dept|budget_active_filter != False %}
+                                                            href="{% url 'budgets:clear-budget' acc.id %}" {% else %} {% endif %}
+                                                            class="button is-small is-danger-passive "
+                                                            data-target="sample-modal"
+                                                            type="button">
+                                                                <span class="icon"><i
+                                                                        class="mdi mdi-trash-can"></i></span>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% else %}
+                                            <tr role="row">
+                                                Budget Already Uploaded
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>

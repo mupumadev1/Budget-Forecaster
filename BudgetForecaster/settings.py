@@ -74,7 +74,7 @@ TEMPLATES = [
     },
 ]
 
-# WSGI_APPLICATION = 'BudgetForecaster.wsgi.application'
+#WSGI_APPLICATION = 'BudgetForecaster.wsgi.application'
 ASGI_APPLICATION = 'BudgetForecaster.asgi.application'
 
 # Database

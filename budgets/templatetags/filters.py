@@ -8,6 +8,7 @@ register = template.Library()
 
 @register.filter(name='calculate_sum')
 def calculate_sum(queryset):
+
     return sum(obj.total for obj in queryset)
 
 @register.filter(name='get_dept')
@@ -37,27 +38,19 @@ def calculate_obj_id(user):
 
 @register.filter(name='budget_status_filter')
 def budget_status(queryset):
-    distinct_data = queryset.values('department_id', 'budget_set').distinct()
+    for object in queryset:
+        obj = get_object_or_404(BudgetStatus, department=object.department, budget_set=object.budget_set)
+        if obj.is_complete:
+            return True
+        else:
+            return False
 
-    result = distinct_data.first()
-    if result:
-        mapped_budget_name = result['budget_set']
-        department_id = result['department_id']
-        obj = get_object_or_404(BudgetStatus, department=department_id, budget_set=mapped_budget_name)
-        return obj.is_complete
-    else:
-        return False
 
 @register.filter(name='budget_active_filter')
 def budget_status(queryset):
-
-    distinct_data = queryset.values('department_id', 'budget_set').distinct()
-
-    result = distinct_data.first()
-    if result:
-        mapped_budget_name = result['budget_set']
-        department_id = result['department_id']
-        obj = get_object_or_404(BudgetStatus, department=department_id, budget_set=mapped_budget_name)
-        return obj.is_active
-    else:
-        return False
+    for object in queryset:
+        obj = get_object_or_404(BudgetStatus, department=object.department, budget_set=object.budget_set)
+        if obj.is_active:
+            return True
+        else:
+            return False

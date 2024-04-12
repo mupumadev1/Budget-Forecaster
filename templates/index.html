@@ -2,6 +2,7 @@
 {% load filters %}
 {% load static %}
 {% block content %}
+    
     <div id="app">
         <section class="section is-title-bar">
             <div class="level">
@@ -44,45 +45,7 @@
             </div>
         </section>
         <section class="section is-main-section ">
-            <div class="notification-div is-hidden mb-3" id="upload-notification">
-                <div class="notification is-info">
-                    <div class="level">
-                        <div class="level-left">
-                            <div class="level-item">
-                                <div>
-                                    <span class="icon"><i class="mdi mdi-buffer default"></i></span>
-                                    <b>Your Budget Has been Submitted for Approval. If you wish to make any changes
-                                        request
-                                        to do so <a>here</a></b>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="level-right">
-                            <button type="button" class="button is-small is-white jb-notification-dismiss">Dismiss
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="notification-div is-hidden mb-3" id="change-notification">
-                <div class="notification is-info">
-                    <div class="level">
-                        <div class="level-left">
-                            <div class="level-item">
-                                <div>
-                                    <span class="icon"><i class="mdi mdi-buffer default"></i></span>
-                                    <b>Your change request has been submitted please. You will be notified once
-                                        approved</b>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="level-right">
-                            <button type="button" class="button is-small is-white jb-notification-dismiss">Dismiss
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+          
             <div class="tile is-ancestor" id="dashboard-cards">
                 <div class="tile is-parent">
                     <div class="card tile is-child">
@@ -151,32 +114,7 @@
                     </div>
                 </div>
             </div>
-            <!--<div class="card">
-              <header class="card-header">
-                <p class="card-header-title">
-                  <span class="icon"><i class="mdi mdi-finance"></i></span>
-                  Performance
-                </p>
-                <a href="#" class="card-header-icon">
-                  <span class="icon"><i class="mdi mdi-reload"></i></span>
-                </a>
-              </header>
-              <div class="card-content">
-                <div class="chart-area">
-                  <div style="height: 100%;">
-                    <div class="chartjs-size-monitor">
-                      <div class="chartjs-size-monitor-expand">
-                        <div></div>
-                      </div>
-                      <div class="chartjs-size-monitor-shrink">
-                        <div></div>
-                      </div>
-                    </div>
-                    <canvas id="big-line-chart" width="2992" height="1000" class="chartjs-render-monitor" style="display: block; height: 400px; width: 1197px;"></canvas>
-                  </div>
-                </div>
-              </div>
-            </div>-->
+          
 
             {% if request.user.role == '002' %}
                 <div class="card has-table has-mobile-sort-spaced">
@@ -219,7 +157,7 @@
                                     <a href="{% url 'budgets:department-settings' asset|get_dept %}"
                                        class="button is-narrow is-small {% if asset|budget_status_filter == False %}is-danger {% else %} is-info {% endif %}is-outlined mr-2"
                                        style="border-radius: 50px">{% if asset|budget_status_filter == False %}
-                                        Incomplete {% else %} Complete{% endif %}</a>
+                                        Incomplete {% else %} Complete{% endif %} {{ asset|budget_status_filter }}</a>
 
                                 </div>
                             </div>
@@ -286,15 +224,14 @@
                                                 </td>
                                                 <td data-label="Dec">{{ acc.period12 }}
                                                 </td>
-                                                <td class="is-actions-cell">
+                                                <td class="is-actions-cell" >
                                                     <div class="buttons is-right">
-                                                        <a {% if assets|budget_active_filter != False %}
-                                                            href="{% url 'budgets:update' acc.id %} "{% else %}{% endif %}
+                                                        <a {% if asset|budget_active_filter == True %}
+                                                            href="{% url 'budgets:update' acc.id %}"{% else %}{% endif %}
                                                             class="button is-small is-light" type="button">
-                                                                <span class="icon"><i
-                                                                        class="mdi mdi-file-edit"></i></span>
+                                                                <span class="icon"><i class="mdi mdi-file-edit"></i></span>
                                                         </a>
-                                                        <a  {% if assets|budget_active_filter != False %}
+                                                        <a  {% if asset|budget_active_filter == True %}
                                                             href="{% url 'budgets:clear-budget' acc.id %}" {% else %}{% endif %}
                                                             class="button is-small is-danger-passive "
                                                             data-target="sample-modal"

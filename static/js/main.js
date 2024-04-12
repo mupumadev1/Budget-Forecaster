@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
+    let selectedPageNumber = 1;
+    let numberOfPages = 0;
+    let hasClickedOnSearchBtn = false;
     let selectedFilter = "";
     const assumptionSelect = document.getElementById('assumptions-select');
     const mobileToggleElements = document.querySelectorAll('.jb-aside-mobile-toggle');
@@ -36,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const factor = document.getElementById('factor')
     let quarter = []
     let mths = []
-
+    addEventListenerToAnchorTag();
     if (buttonElement) {
         buttonElement.addEventListener("click", function (ev) {
             ev.preventDefault()
@@ -61,7 +64,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         var updatedObjId = objId.replace(/\d+/, newNumber);
 
                         // Update the window location with the new objId
-                        window.location.href = "/home/" + updatedObjId;
+                        window.location.href = "/home/dept/" + updatedObjId;
                     }
                 })
 
@@ -81,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     return response.json();
                 })
                 .then(result => {
-                    window.location.href = "/home/" + objId
+                    window.location.href = "/home/dept/" + objId
                 })
 
         });
@@ -204,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-// setup chat scoket
+//setup chat scoket
     const notifyScoket = new WebSocket(
         'ws://'
         + window.location.host
@@ -844,6 +847,47 @@ document.addEventListener("DOMContentLoaded", function () {
         ev.preventDefault()
         document.getElementById('expenses').classList.toggle('is-hidden')
     })
+function handleClick(event) {
+    event.preventDefault();
+    const url = event.target.getAttribute('href');
+    fetch(url)
+        .then(response => response.text())
+        .then(html => {
+            updateTableAndPaginator(html, deptId)
+            addEventListenerToAnchorTag(deptId);
+        });
+}
 
+function addEventListenerToAnchorTag(deptId) {
+        console.log('im here now')
 
-})
+    const paginationLinks = document.querySelectorAll(`.custom-pagination-${deptId} a`)
+    if (paginationLinks >0){
+    paginationLinks.forEach(link => {
+        console.log('event added')
+        link.addEventListener('click', handleClick); // Add the handleClick function as the event listener
+    });
+    }
+    else{
+        console.log('no links found')
+    }
+}
+
+function updateTableAndPaginator(html, deptId) {
+    const parser = new DOMParser();
+    const newDoc = parser.parseFromString(html, 'text/html');
+    const newRow = newDoc.querySelectorAll(`#table-body-${deptId} tr`);
+    const newTable = newDoc.getElementById(`table-body-${deptId}`);
+    const newPaginator = newDoc.getElementById(`paginator-${deptId}`);
+    document.getElementById(`table-body-${deptId}`).replaceWith(newTable);
+    document.getElementById(`paginator-${deptId}`).replaceWith(newPaginator);
+
+    // Add any other necessary post-update operations
+}
+
+// Add the event listener to the first pagination link for each department
+const deptIds = ['ceo', 'internal_audit', 'supply_chain', 'bds', 'public_relations', 'technical', 'information_systems', 'legal_risk', 'human_capital', 'sales_marketing', 'admin', 'finance'];
+deptIds.forEach(deptId => {
+    addEventListenerToAnchorTag(deptId);
+});
+});

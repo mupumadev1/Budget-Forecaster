@@ -374,13 +374,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Create table rows based on fetched data
                         const row = document.createElement('tr');
                         const anchorID = document.createElement('a');
-                        anchorID.href = `/budgets/update/${item.id}`;
+                        anchorID.href = `/update/${item.id}`;
                         anchorID.textContent = item.account_id;
                         anchorID.classList.add('has-text-black');
 
                         const anchorName = document.createElement('a');
-                        anchorName.href = `/budgets/update/${item.id}`;
-                        anchorName.textContent = item.account_name;
+                        anchorName.href = `/update/${item.id}`;
+                        anchorName.textContent = item.account__acctdesc;
                         anchorName.classList.add('has-text-black');
 
                         const cell1 = document.createElement('td');

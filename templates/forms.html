@@ -91,10 +91,12 @@
                                         <div class="select is-fullwidth">
                                             <p class="control is-expanded has-icons-left">
                                                 <select name="currency" id="currency" class="overall">
-                                                    <option value=""></option>
                                                     {% for cur in currency %}
-                                                        <option value="{{ cur.id }}"
-                                                                data-rate="{{ cur.rate }}">{{ cur.currency }}</option>
+                                                    {% if cur.currency == 'ZMW' %}
+                                                        <option value="{{ cur.id }}" data-rate="{{ cur.rate }}">{{ cur.currency }}</option>
+                                                    {% else %}
+                                                        <option value="{{ cur.id }}" data-rate="{{ cur.rate }}">{{ cur.currency }}</option>
+                                                    {% endif %}
                                                     {% endfor %}
                                                 </select>
                                             </p>

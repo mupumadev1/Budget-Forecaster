@@ -113,13 +113,13 @@
                                     <td>{{ status.comment }}</td>
 
                                     <td>{% if status.is_complete == True %}
-                                        <p class="button is-small is-info is-outlined" style="border-radius: 50px">
+                                        <p class="button is-small is-info " style="border-radius: 50px">
                                             Complete</p> {% else %}
                                         <p class="button is-small is-danger is-outlined" style="border-radius: 50px;">
                                             Incomplete</p> {% endif %}</td>
                                     <td class="is-checkbox-cell">
                                         {% if status.is_active == True %}
-                                            <p class="button is-small is-primary is-outlined"
+                                            <p class="button is-small is-primary "
                                                style="border-radius: 50px">Active</p> {% else %}
                                             <p class="button is-small is-danger is-outlined"
                                                style="border-radius: 50px">Inactive</p>  {% endif %}

@@ -95,12 +95,38 @@
     <div class="menu is-menu-main">
         <ul class="menu-list">
             <li>
-                <a href="{% url 'budgets:home' 'Budget 1' %}"
-                   class="has-icon {% if request.resolver_match.view_name == 'budgets:home' %} is-active {% endif %}">
+             {% if request.user.role != '002' %}
+                <a href="{% url 'budgets:home-dept' 'Budget 1' %}"
+                   class="has-icon {% if request.resolver_match.view_name == 'budgets:home-dept' %} is-active {% endif %}">
                     <span class="icon"><i class="mdi mdi-desktop-mac"></i></span>
                     <span class="menu-item-label">Dashboard</span>
+
                 </a>
+            {% else %}
+                <a class="has-icon has-dropdown-icon " aria-haspopup="true"
+                   aria-controls="dropdown-menu">
+                    <span class="icon"><i class="mdi mdi-desktop-mac"></i></span>
+                    <span class="menu-item-label">Dashboard</span>
+                     <div class="dropdown-icon ">
+                        <span class="icon"><i class="mdi mdi-plus"></i></span>
+                    </div>
+                </a>
+             <ul>
+                    <li>
+                        <a href="{% url 'budgets:home' 'Budget 1' %}"
+                           class=" dropdown-item {% if request.resolver_match.view_name == 'budgets:home' %} is-active{% endif %}">
+                            <span>CAPEX</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'budgets:home-opex' 'Budget 1' %}"
+                           class=" dropdown-item {% if request.resolver_match.view_name == 'budgets:home-opex' %} is-active{% endif %}">
+                            <span>OPEX</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
+        {% endif %}
             <li>
                 {% if request.user.role != '002' %}
                     <a {% if request.user|calculate_obj_id != None %} href="{% url 'budgets:update' request.user|calculate_obj_id %}" {% else %}  {% endif %}
@@ -287,7 +313,7 @@
 {% block content %}{% endblock %}
 
 {% block extra-scripts %}{% endblock %}
-<script type="text/javascript" src="{% static 'js/main.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/main.js' %}" ></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
 
