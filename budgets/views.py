@@ -42,35 +42,35 @@ def index(request, budget_set):
         # Income accounts
         income = BudgetTotals.objects.filter(budget_set=budget_set, department_id=17, posted=False).order_by(
             '-last_updated')
-        paginator = Paginator(income, 5)
+        paginator = Paginator(income, 10)
         page_number = request.GET.get('page')
         income_obj = paginator.get_page(page_number)
 
         # Asset accounts
         asset = BudgetTotals.objects.filter(budget_set=budget_set, department_id=13, posted=False).order_by(
             '-last_updated')
-        paginator = Paginator(asset, 5)
+        paginator = Paginator(asset, 10)
         page_number = request.GET.get('page')
         asset_obj = paginator.get_page(page_number)
 
         # Liability accounts
         liability = BudgetTotals.objects.filter(budget_set=budget_set, department_id=14, posted=False).order_by(
             '-last_updated')
-        paginator = Paginator(liability, 5)
+        paginator = Paginator(liability, 10)
         page_number = request.GET.get('page')
         liability_obj = paginator.get_page(page_number)
 
         # Equity accounts
-        equity = BudgetTotals.objects.filter(budget_set=budget_set, department_id=15, posted=False).order_by(
+        equity = BudgetTotals.objects.filter(budget_set=budget_set, department_id=11, posted=False).order_by(
             '-last_updated')
-        paginator = Paginator(equity, 5)
+        paginator = Paginator(equity, 10)
         page_number = request.GET.get('page')
         equity_obj = paginator.get_page(page_number)
 
         # Clearing accounts
         clearing = BudgetTotals.objects.filter(budget_set=budget_set, department_id=16, posted=False).order_by(
             '-last_updated')
-        paginator = Paginator(clearing, 5)
+        paginator = Paginator(clearing, 10)
         page_number = request.GET.get('page')
         clearing_obj = paginator.get_page(page_number)
 
@@ -102,51 +102,51 @@ def dept_user_index(request, budget_set):
 
         # Create separate variables for each department
         ceo = budget_totals.filter(department_id=1)
-        paginator = Paginator(ceo, 5)
+        paginator = Paginator(ceo, 10)
         page_number = request.GET.get('page')
         ceo_obj = paginator.get_page(page_number)
         internal_audit = budget_totals.filter(department_id=2)
-        paginator = Paginator(internal_audit, 5)
+        paginator = Paginator(internal_audit, 10)
         page_number = request.GET.get('page')
         internal_audit_obj = paginator.get_page(page_number)
         supply_chain = budget_totals.filter(department_id=3)
-        paginator = Paginator(supply_chain, 5)
+        paginator = Paginator(supply_chain, 10)
         page_number = request.GET.get('page')
         supply_chain_obj = paginator.get_page(page_number)
         bds = budget_totals.filter(department_id=4)
-        paginator = Paginator(bds, 5)
+        paginator = Paginator(bds, 10)
         page_number = request.GET.get('page')
         bds_obj = paginator.get_page(page_number)
-        public_relations = budget_totals.filter(department_id=5)
-        paginator = Paginator(public_relations, 5)
+        public_relations = budget_totals.filter(department_id=10)
+        paginator = Paginator(public_relations, 10)
         page_number = request.GET.get('page')
         public_relations_obj = paginator.get_page(page_number)
         technical = budget_totals.filter(department_id=6)
-        paginator = Paginator(technical, 5)
+        paginator = Paginator(technical, 10)
         page_number = request.GET.get('page')
         technical_obj = paginator.get_page(page_number)
         information_systems = budget_totals.filter(department_id=7)
-        paginator = Paginator(information_systems, 5)
+        paginator = Paginator(information_systems, 10)
         page_number = request.GET.get('page')
         information_systems_obj = paginator.get_page(page_number)
         legal_risk = budget_totals.filter(department_id=8)
-        paginator = Paginator(legal_risk, 5)
+        paginator = Paginator(legal_risk, 10)
         page_number = request.GET.get('page')
         legal_risk_obj = paginator.get_page(page_number)
         human_capital = budget_totals.filter(department_id=9)
-        paginator = Paginator(human_capital, 5)
+        paginator = Paginator(human_capital, 10)
         page_number = request.GET.get('page')
         human_capital_obj = paginator.get_page(page_number)
         sales_marketing = budget_totals.filter(department_id=10)
-        paginator = Paginator(sales_marketing, 5)
+        paginator = Paginator(sales_marketing, 10)
         page_number = request.GET.get('page')
         sales_marketing_obj = paginator.get_page(page_number)
         admin = budget_totals.filter(department_id=11)
-        paginator = Paginator(admin, 5)
+        paginator = Paginator(admin, 10)
         page_number = request.GET.get('page')
         admin_page_obj = paginator.get_page(page_number)
         finance = budget_totals.filter(department_id=12)
-        paginator = Paginator(finance, 5)
+        paginator = Paginator(finance, 10)
         page_number = request.GET.get('page')
         finance_page_obj = paginator.get_page(page_number)
         # Calculate total sum
@@ -191,51 +191,51 @@ def opex_index(request, budget_set):
 
         # Create separate variables for each department
         ceo = budget_totals.filter(department_id=1)
-        paginator = Paginator(ceo, 5)
+        paginator = Paginator(ceo, 10)
         page_number = request.GET.get('page')
         ceo_obj = paginator.get_page(page_number)
         internal_audit = budget_totals.filter(department_id=2)
-        paginator = Paginator(internal_audit, 5)
+        paginator = Paginator(internal_audit, 10)
         page_number = request.GET.get('page')
         internal_audit_obj = paginator.get_page(page_number)
         supply_chain = budget_totals.filter(department_id=3)
-        paginator = Paginator(supply_chain, 5)
+        paginator = Paginator(supply_chain, 10)
         page_number = request.GET.get('page')
         supply_chain_obj = paginator.get_page(page_number)
         bds = budget_totals.filter(department_id=4)
-        paginator = Paginator(bds, 5)
+        paginator = Paginator(bds, 10)
         page_number = request.GET.get('page')
         bds_obj = paginator.get_page(page_number)
-        public_relations = budget_totals.filter(department_id=5)
-        paginator = Paginator(public_relations, 5)
+        public_relations = budget_totals.filter(department_id=10)
+        paginator = Paginator(public_relations, 10)
         page_number = request.GET.get('page')
         public_relations_obj = paginator.get_page(page_number)
         technical = budget_totals.filter(department_id=6)
-        paginator = Paginator(technical, 5)
+        paginator = Paginator(technical, 10)
         page_number = request.GET.get('page')
         technical_obj = paginator.get_page(page_number)
         information_systems = budget_totals.filter(department_id=7)
-        paginator = Paginator(information_systems, 5)
+        paginator = Paginator(information_systems, 10)
         page_number = request.GET.get('page')
         information_systems_obj = paginator.get_page(page_number)
         legal_risk = budget_totals.filter(department_id=8)
-        paginator = Paginator(legal_risk, 5)
+        paginator = Paginator(legal_risk, 10)
         page_number = request.GET.get('page')
         legal_risk_obj = paginator.get_page(page_number)
         human_capital = budget_totals.filter(department_id=9)
-        paginator = Paginator(human_capital, 5)
+        paginator = Paginator(human_capital, 10)
         page_number = request.GET.get('page')
         human_capital_obj = paginator.get_page(page_number)
         sales_marketing = budget_totals.filter(department_id=10)
-        paginator = Paginator(sales_marketing, 5)
+        paginator = Paginator(sales_marketing, 10)
         page_number = request.GET.get('page')
         sales_marketing_obj = paginator.get_page(page_number)
         admin = budget_totals.filter(department_id=11)
-        paginator = Paginator(admin, 5)
+        paginator = Paginator(admin, 10)
         page_number = request.GET.get('page')
         admin_page_obj = paginator.get_page(page_number)
         finance = budget_totals.filter(department_id=12)
-        paginator = Paginator(finance, 5)
+        paginator = Paginator(finance, 10)
         page_number = request.GET.get('page')
         finance_page_obj = paginator.get_page(page_number)
         # Calculate total sum
@@ -265,9 +265,8 @@ def opex_index(request, budget_set):
 
 def generate_excel(request):
     # Define the header row for the Excel file
-    excel_header = ['BUDGET SUMMARY', 'Q1', 'Q2', 'H1', 'Q3', 'Q4', 'H2', 'TOTAL']
-
-    # Define quarter and half period ranges
+    excel_header = ['Account Number', 'Period 1', 'Period 2', 'Period 3', 'Q1', 'Period 4', 'Period 5', 'Period 6', 'Q2', 'H1', 'Period 7', 'Period 8', 'Period 9',
+                    'Q3', 'Period 10', 'Period 11', 'Period 12', 'Q4', 'H2', 'TOTAL']
     quarter_periods = [1, 2, 3, 4]
     half1_periods = [1, 2, 3, 4, 5, 6]
     half2_periods = [7, 8, 9, 10, 11, 12]
@@ -278,12 +277,19 @@ def generate_excel(request):
     for budget_total in BudgetTotals.objects.exclude(total=0).all():
         for period in range(1, 13):
             value = getattr(budget_total, f'period{period}', Decimal('0'))
-            if period in quarter_periods:
-                budget_totals[budget_total.account][f'Q{period}'] += value
-            if period in half1_periods:
-                budget_totals[budget_total.account]['H1'] += value
-            if period in half2_periods:
-                budget_totals[budget_total.account]['H2'] += value
+            budget_totals[budget_total.account][f'Period {period}'] = value
+            for quarter in range(1, 5):
+                start_period = (quarter - 1) * 3 + 1
+                end_period = quarter * 3
+                quarter_value = sum(getattr(budget_total, f'period{period}', Decimal('0')) for period in
+                                    range(start_period, end_period + 1))
+                budget_totals[budget_total.account][f'Q{quarter}'] = quarter_value
+
+            half1_value = sum(getattr(budget_total, f'period{period}', Decimal('0')) for period in half1_periods)
+            budget_totals[budget_total.account]['H1'] = half1_value
+
+            half2_value = sum(getattr(budget_total, f'period{period}', Decimal('0')) for period in half2_periods)
+            budget_totals[budget_total.account]['H2'] = half2_value
         budget_totals[budget_total.account]['TOTAL'] = getattr(budget_total, 'total', Decimal('0'))
 
     # Create a new Excel workbook
@@ -302,7 +308,16 @@ def generate_excel(request):
     for row, (account, totals) in enumerate(budget_totals.items(), start=2):
         sheet.cell(row=row, column=1, value=account.pk)
         for col, period in enumerate(excel_header[1:], start=2):
-            sheet.cell(row=row, column=col, value=Decimal(totals[period]))
+            if 'P' in period:
+                sheet.cell(row=row, column=col, value=Decimal(totals[period]))
+            elif 'Q' in period:
+                sheet.cell(row=row, column=col, value=Decimal(totals[period]))
+            elif period == 'H1':
+                sheet.cell(row=row, column=col, value=Decimal(totals[period]))
+            elif period == 'H2':
+                sheet.cell(row=row, column=col, value=Decimal(totals[period]))
+            elif period == 'TOTAL':
+                sheet.cell(row=row, column=col, value=Decimal(totals[period]))
 
     # Create a HttpResponse with an Excel file attachment
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -312,7 +327,6 @@ def generate_excel(request):
     workbook.save(response)
 
     return response
-
 
 def department_budget_settings(request, dept_id):
     if request.user.is_authenticated:
@@ -440,27 +454,32 @@ def budget_assumptions(request):
         return redirect('budgets:login')
 
 
+
 def accounts_search(request):
     field_mapping = {
-        'account_id': 'account_id',
+        'account_id': 'account__acctid__icontains',
         'account_name': 'account__acctdesc__icontains',
     }
 
     filter = request.GET.get('filter')
     value = request.GET.get('value')
+    dept = request.GET.get('department')
     active = BudgetStatus.objects.filter(is_active=True).values('budget_set')
-
-    if filter in field_mapping and value:
-        if request.user.role != '002':
-
-            account_info = BudgetTotals.objects.filter(**{field_mapping[filter]: value},
-                                                       department=request.user.department).values(
-                'account_id', 'account__acctdesc', 'id').all()
-            return JsonResponse({'data': list(account_info)}, status=200)
-        else:
-            account_info = BudgetTotals.objects.filter(Q(budget_set__in=active) ,**{field_mapping[filter]: value}).values(
-                'account_id', 'account__acctdesc', 'id').all()
-            return JsonResponse({'data': list(account_info)}, status=200)
+    if dept :
+        account_info = BudgetTotals.objects.filter(Q(budget_set__in=active), **{field_mapping[filter]: value},
+                                                   department=dept).values('id','total','account_id', 'account__acctdesc','year','currency__currency','period1','period2','period3','period4','period5','period6','period7','period8','period9','period10','period11','period12').all()
+        return JsonResponse({'data': list(account_info)}, status=200)
+    else:
+        if filter in field_mapping and value:
+            if request.user.role != '002':
+                account_info = BudgetTotals.objects.filter(Q(budget_set__in=active),**{field_mapping[filter]: value},
+                                                           department=request.user.department).values(
+                    'account_id', 'account__acctdesc', 'id').all()
+                return JsonResponse({'data': list(account_info)}, status=200)
+            else:
+                account_info = BudgetTotals.objects.filter(Q(budget_set__in=active),**{field_mapping[filter]: value}).values(
+                    'account_id', 'account__acctdesc', 'id').all()
+                return JsonResponse({'data': list(account_info)}, status=200)
 
 
 def get_budget_set(request, object_id, budget_set):

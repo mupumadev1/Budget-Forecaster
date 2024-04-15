@@ -35,7 +35,7 @@
                     <form method="POST" action="{% url 'budgets:update' object_id=object.id %}">
                         {% csrf_token %}
                         <div class="card-content">
-                             <div class="field is-horizontal">
+                            <div class="field is-horizontal">
                                 <div class="field-label is-normal">
                                     <label class="label">Account Name</label>
                                 </div>
@@ -92,11 +92,13 @@
                                             <p class="control is-expanded has-icons-left">
                                                 <select name="currency" id="currency" class="overall">
                                                     {% for cur in currency %}
-                                                    {% if cur.currency == 'ZMW' %}
-                                                        <option value="{{ cur.id }}" data-rate="{{ cur.rate }}">{{ cur.currency }}</option>
-                                                    {% else %}
-                                                        <option value="{{ cur.id }}" data-rate="{{ cur.rate }}">{{ cur.currency }}</option>
-                                                    {% endif %}
+                                                        {% if cur.currency == 'ZMW' %}
+                                                            <option value="{{ cur.id }}"
+                                                                    data-rate="{{ cur.rate }}">{{ cur.currency }}</option>
+                                                        {% else %}
+                                                            <option value="{{ cur.id }}"
+                                                                    data-rate="{{ cur.rate }}">{{ cur.currency }}</option>
+                                                        {% endif %}
                                                     {% endfor %}
                                                 </select>
                                             </p>
@@ -388,26 +390,32 @@
                     <header class="card-header">
                         <div class="field-body px-2">
                             <a href="
+                                    
                                     {% if first_obj.id != obj.id %}{% url 'budgets:update' object_id=first_obj.id %}{% else %} # {% endif %}"
                                data-object-id="{{ first_obj.id }}" class="has-text-black account-name-toggle mt-2"><span
                                     class="mdi mdi-page-first mdi-24px"></span></a>
                             <a href="
 
+                                    
                                     {% if prev_obj %}{% url 'budgets:update' object_id=prev_obj.id %} {% else %} # {% endif %}"
                                data-object-id="{{ previous_obj.id }}"
                                class="has-text-black account-name-toggle mt-2"><span
                                     class="mdi mdi-skip-previous mdi-24px"></span></a>
-                            <p class="card-header-title mt-2 mx-2" style="flex-grow: 0;padding: 0">{{ name }} Budget Lines</p>
+                            <p class="card-header-title mt-2 mx-2" style="flex-grow: 0;padding: 0">{{ name }} Budget
+                                Lines</p>
                             <a href="
+                                    
                                     {% if next_obj %}{% url 'budgets:update' object_id=next_obj.id %}{% else %} # {% endif %}"
                                data-object-id="{{ next_obj.id }}" class="has-text-black account mt-2"><span
                                     class="mdi mdi-skip-next mdi-24px"></span></a>
                             <a href="
+                                    
                                     {% if last_obj.id != obj.id %}{% url 'budgets:update' object_id=last_obj.id %}{% else %}#{% endif %}"
-                               data-object-id="{{ last_obj.id }}"  class="has-text-black mt-2"><span
+                               data-object-id="{{ last_obj.id }}" class="has-text-black mt-2"><span
                                     class="mdi mdi-page-last mdi-24px"></span></a>
 
-                            <a class="jb-modal ml-1 mt-2" data-target="account-search-modal" style="flex-grow: 1" ><span class="mdi mdi-search-web mdi-24px"></span></a>
+                            <a class="jb-modal ml-1 mt-2" data-target="account-search-modal" style="flex-grow: 1"><span
+                                    class="mdi mdi-search-web mdi-24px"></span></a>
                             <div class="control">
 
                                 <div class="select is-left is-small">
@@ -434,117 +442,162 @@
                             </div>
                     </header>
                     <div class="card-content">
-                    <div class="level " style="margin-top:0.5rem;margin-bottom:1rem; font-weight:bold;">
-                        <div class="level-left">
-                            <p class="mx-2 mt-1"> Total : ZMW {{ lines|calculate_sum }}</p>
+                        <div class="level " style="margin-top:0.5rem;margin-bottom:1rem; font-weight:bold;">
+                            <div class="level-left">
+                                <p class="mx-2 mt-1"> Total : ZMW {{ lines|calculate_sum }}</p>
 
+                            </div>
+                            <div class="level-right">
+
+                            </div>
                         </div>
-                        <div class="level-right">
+                        <div class="table-wrapper has-mobile-cards p-2"
+                             style="overflow-y:auto;">
 
-                        </div>
-                    </div>
-                    <div class="table-wrapper has-mobile-cards p-2"
-                         style="overflow-y:auto;">
+                            <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                                   role="grid">
+                                <thead>
+                                <tr>
+                                    <th>Account ID</th>
+                                    <th>Item Description</th>
+                                    <th>Currency</th>
+                                    <th>Exchange Rate</th>
+                                    <th>Rate</th>
+                                    <th>Usage</th>
 
-                        <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
-                               role="grid">
-                            <thead>
-                            <tr>
-                                <th>Account ID</th>
-                                <th>Item Description</th>
-                                <th>Currency</th>
-                                <th>Exchange Rate</th>
-                                <th>Rate</th>
-                                <th>Usage</th>
+                                    <th>Staff</th>
+                                    <th>Factor</th>
+                                    <th>Total</th>
+                                    <th>Jan</th>
+                                    <th>Feb</th>
+                                    <th>Mar</th>
+                                    <th>Apr</th>
+                                    <th role="columnheader">May</th>
+                                    <th role="columnheader">Jun</th>
+                                    <th role="columnheader">Jul</th>
+                                    <th role="columnheader">Aug</th>
+                                    <th role="columnheader">Sep</th>
+                                    <th role="columnheader">Oct</th>
+                                    <th role="columnheader">Nov</th>
+                                    <th role="columnheader">Dec</th>
+                                    <th>Actions</th>
 
-                                <th>Staff</th>
-                                <th>Factor</th>
-                                <th>Total</th>
-                                <th>Jan</th>
-                                <th>Feb</th>
-                                <th>Mar</th>
-                                <th>Apr</th>
-                                <th role="columnheader">May</th>
-                                <th role="columnheader">Jun</th>
-                                <th role="columnheader">Jul</th>
-                                <th role="columnheader">Aug</th>
-                                <th role="columnheader">Sep</th>
-                                <th role="columnheader">Oct</th>
-                                <th role="columnheader">Nov</th>
-                                <th role="columnheader">Dec</th>
-                                <th>Actions</th>
+                                </tr>
+                                </thead>
 
-                            </tr>
-                            </thead>
+                                <tbody class="budget-table-body" role="rowgroup">
 
-                            <tbody class="budget-table-body" role="rowgroup">
-
-                            {% if lines %}
-                                {% for acc in lines %}
-
-                                    <tr role="row" data-total="{{ acc.total }}">
-                                        <td data-label="Account id">{{ acc.account.acctfmttd }}</td>
-                                        <td data-label="Item Description"
-                                            style="width: 10%;">{{ acc.item_description }}</td>
-                                        <td data-label="currency">{{ acc.currency.currency }}</td>
-                                        <td data-label="exchange">{{ acc.exchange_rate }}</td>
-
-                                        <td data-label="rate">{{ acc.rate }}</td>
-                                        <td data-label="usage">{{ acc.usage }}</td>
-                                        <td data-label="staff">{{ acc.staff }}</td>
-                                        <td data-label="factor">{{ acc.factor }}</td>
-                                        <td data-label="Budget Total">{{ acc.total }}</td>
-                                        <td data-label="Jan">{{ acc.period1 }}</td>
-                                        <td data-label="Feb">{{ acc.period2 }}
+                                {% if lines %}
+                                    <tr class="has-text-weight-bold p-2">
+                                        <td data-label="Account id">Totals</td>
+                                        <td data-label="Account name"
+                                            style="width: 10%;"></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td data-label="Budget Total">{{ lines|calculate_sum }}</td>
+                                        <td data-label="Jan">{{ lines|calculate_sum_month:1 }}</td>
+                                        <td data-label="Feb">{{ lines|calculate_sum_month:2 }}
                                         </td>
-                                        <td data-label="Mar">{{ acc.period3 }}
+                                        <td data-label="Mar">{{ lines|calculate_sum_month:3 }}
                                         </td>
-                                        <td data-label="Apr">{{ acc.period4 }}
+                                        <td data-label="Apr">{{ lines|calculate_sum_month:4 }}
                                         </td>
-                                        <td data-label="May">{{ acc.period5 }}
+                                        <td data-label="May">{{ lines|calculate_sum_month:5 }}
                                         </td>
-                                        <td data-label="Jun">{{ acc.period6 }}
+                                        <td data-label="Jun">{{ lines|calculate_sum_month:6 }}
                                         </td>
-                                        <td data-label="Jul">{{ acc.period7 }}
+                                        <td data-label="Jul">{{ lines|calculate_sum_month:7 }}
                                         </td>
-                                        <td data-label="Aug">{{ acc.period8 }}
+                                        <td data-label="Aug">{{ lines|calculate_sum_month:8 }}
                                         </td>
-                                        <td data-label="Sep">{{ acc.period9 }}
+                                        <td data-label="Sep">{{ lines|calculate_sum_month:9 }}
                                         </td>
-                                        <td data-label="Oct">{{ acc.period10 }}
+                                        <td data-label="Oct">{{ lines|calculate_sum_month:10 }}
                                         </td>
-                                        <td data-label="Nov">{{ acc.period11 }}
+                                        <td data-label="Nov">{{ lines|calculate_sum_month:11 }}
                                         </td>
-                                        <td data-label="Dec">{{ acc.period12 }}
+                                        <td data-label="Dec">{{ lines|calculate_sum_month:12 }}
                                         </td>
                                         <td class="is-actions-cell">
                                             <div class="buttons is-right">
-
-                                                <a href="{% url 'budgets:clear-line' acc.id %}"
-                                                   class="button is-small is-danger-passive "
-                                                   data-target="sample-modal"
-                                                   type="button">
-                                                                <span class="icon"><i
-                                                                        class="mdi mdi-trash-can"></i></span>
+                                                <a>
+                                                    <span class="icon"></span>
+                                                </a>
+                                                <a>
+                                                    <span class="icon"></span>
                                                 </a>
                                             </div>
                                         </td>
                                     </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td colspan="22">
+                                    {% for acc in lines %}
 
-                                        <div class="mx-auto p-3"><p>No Lines Created For This Account</p></div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                            </tbody>
+                                        <tr role="row" data-total="{{ acc.total }}">
+                                            <td data-label="Account id">{{ acc.account.acctfmttd }}</td>
+                                            <td data-label="Item Description"
+                                                style="width: 10%;">{{ acc.item_description }}</td>
+                                            <td data-label="currency">{{ acc.currency.currency }}</td>
+                                            <td data-label="exchange">{{ acc.exchange_rate }}</td>
 
-                        </table>
+                                            <td data-label="rate">{{ acc.rate }}</td>
+                                            <td data-label="usage">{{ acc.usage }}</td>
+                                            <td data-label="staff">{{ acc.staff }}</td>
+                                            <td data-label="factor">{{ acc.factor }}</td>
+                                            <td data-label="Budget Total">{{ acc.total }}</td>
+                                            <td data-label="Jan">{{ acc.period1 }}</td>
+                                            <td data-label="Feb">{{ acc.period2 }}
+                                            </td>
+                                            <td data-label="Mar">{{ acc.period3 }}
+                                            </td>
+                                            <td data-label="Apr">{{ acc.period4 }}
+                                            </td>
+                                            <td data-label="May">{{ acc.period5 }}
+                                            </td>
+                                            <td data-label="Jun">{{ acc.period6 }}
+                                            </td>
+                                            <td data-label="Jul">{{ acc.period7 }}
+                                            </td>
+                                            <td data-label="Aug">{{ acc.period8 }}
+                                            </td>
+                                            <td data-label="Sep">{{ acc.period9 }}
+                                            </td>
+                                            <td data-label="Oct">{{ acc.period10 }}
+                                            </td>
+                                            <td data-label="Nov">{{ acc.period11 }}
+                                            </td>
+                                            <td data-label="Dec">{{ acc.period12 }}
+                                            </td>
+                                            <td class="is-actions-cell">
+                                                <div class="buttons is-right">
+
+                                                    <a href="{% url 'budgets:clear-line' acc.id %}"
+                                                       class="button is-small is-danger-passive "
+                                                       data-target="sample-modal"
+                                                       type="button">
+                                                                <span class="icon"><i
+                                                                        class="mdi mdi-trash-can"></i></span>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="22">
+
+                                            <div class="mx-auto p-3"><p>No Lines Created For This Account</p></div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                                </tbody>
+
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
 
             </section>
             {% include 'partials/account-search-modal.html' %}

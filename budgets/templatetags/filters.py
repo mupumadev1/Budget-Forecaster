@@ -6,15 +6,21 @@ from budgets.models import BudgetStatus, BudgetLines, BudgetTotals
 register = template.Library()
 
 
+@register.filter(name='calculate_sum_month')
+def calculate_sum(queryset,period):
+    return sum(getattr(obj, f'period{period}') for obj in queryset)
+
+
 @register.filter(name='calculate_sum')
 def calculate_sum(queryset):
-
     return sum(obj.total for obj in queryset)
+
 
 @register.filter(name='get_dept')
 def get_dept(queryset):
     for obj in queryset:
         return obj.department.id
+
 
 @register.filter(name='calculate_obj_id')
 def calculate_obj_id(user):
@@ -22,7 +28,8 @@ def calculate_obj_id(user):
         status = BudgetStatus.objects.filter(is_active=True).first()
         for s in status:
             active = get_object_or_404(BudgetStatus, department=s.department.id, is_active=True)
-            budget = BudgetLines.objects.filter(department=active.department, budget_set=active.get_budget_set_display()).first()
+            budget = BudgetLines.objects.filter(department=active.department,
+                                                budget_set=active.get_budget_set_display()).first()
             if budget:
                 return budget.id
     else:

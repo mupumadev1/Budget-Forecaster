@@ -187,11 +187,12 @@ fieldset[disabled] .file-name, fieldset[disabled] .select select, .select fields
     min-width: 24px;
     width: 24px;
 }
+
 .parent {
     position: absolute;
     top: 50%;
     left: 50%;
-    z-index:1001;
+    z-index: 1001;
 }
 
 .arc-1, .arc-2 {
@@ -208,23 +209,40 @@ fieldset[disabled] .file-name, fieldset[disabled] .select select, .select fields
 }
 
 .arc-2 {
-    border-color: transparent transparent  #910A67 transparent;
+    border-color: transparent transparent #910A67 transparent;
     animation: spin-2 4s linear infinite;
 }
 
 @keyframes spin-1 {
-    0% { transform: rotate(0deg); }
-    25% { transform: rotate(110deg); }
-    50% { transform: rotate(220deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(110deg);
+    }
+    50% {
+        transform: rotate(220deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes spin-2 {
-    0% { transform: rotate(360deg); }
-    25% { transform: rotate(220deg); }
-    50% { transform: rotate(110deg); }
-    100% { transform: rotate(0deg); }
+    0% {
+        transform: rotate(360deg);
+    }
+    25% {
+        transform: rotate(220deg);
+    }
+    50% {
+        transform: rotate(110deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
 }
+
 .is-large.modal-close, .is-large.delete {
     height: 32px;
     max-height: 32px;
@@ -14476,7 +14494,7 @@ a.has-text-danger-dark:hover, a.has-text-danger-dark:focus {
 .footer {
     background-color: hsl(0deg, 0%, 100%);
     padding: 0.495rem 1.5rem;
-    bottom:0;
+    bottom: 0;
     position: fixed;
     width: 100%
 }
@@ -14844,6 +14862,7 @@ table.table {
     width: 100%;
 }
 
+
 table.table thead th {
     border-bottom-width: 1px;
     position: sticky;
@@ -14873,10 +14892,24 @@ table.table td {
     vertical-align: middle;
 }
 
+table.table td.is-actions-cell {
+    position: sticky;
+    right: 0;
+    top: 0;
+    z-index: 100;
+    background-color: white;
+}
+
 .b-table {
     /* This stylizes buefy's pagination */
 }
+.paginator{
+    position:sticky;
+    background-color: white;
+    bottom:0;
+    z-index:101;
 
+}
 .b-table .table {
     border: 0;
     border-radius: 0;

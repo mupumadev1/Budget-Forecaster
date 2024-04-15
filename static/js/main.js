@@ -1,7 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    let selectedPageNumber = 1;
-    let numberOfPages = 0;
-    let hasClickedOnSearchBtn = false;
+
     let selectedFilter = "";
     const assumptionSelect = document.getElementById('assumptions-select');
     const mobileToggleElements = document.querySelectorAll('.jb-aside-mobile-toggle');
@@ -356,14 +354,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         search.addEventListener('input', (ev) => {
             const val = ev.target.value.trim();
+            let deptartment = search.dataset.dept;
 
             if (val === "") {
                 tableBody.innerHTML = "";
                 return;
             }
-
             // Fetch data based on search criteria
-            fetch(`account/search?filter=${selectedFilter}&value=${val}`)
+            fetch(`/account/search?filter=${selectedFilter}&value=${val}&department=${deptartment}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -402,28 +400,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
         });
     }
-    /*document.getElementById('save').addEventListener('click', ev => {
-        ev.preventDefault()
-        const formData = {};
-        $(".input").each((index, el) => {
-            formData[$(el).attr('name')] = $(el).val();
-        })
-        $.ajax({
-            url: ``,
-            type: 'POST',
-            dataType: 'JSON',
-            data: JSON.stringify(formData),
-            headers: {'X-CSRFToken': getCSRFToken()}, // Include CSRF token
-            success: function (resp) {
-                window.location.href = ``
-            },
-            error: function (resp) {
-                console.log(resp);
 
-                alert('An error occurred while submitting.');
-            }
-        });
-    })*/
 // Check for the existence of other elements and add event listeners accordingly
 // Add event listeners to checkboxes
     if (checkbElements.length > 0) {
@@ -847,47 +824,162 @@ document.addEventListener("DOMContentLoaded", function () {
         ev.preventDefault()
         document.getElementById('expenses').classList.toggle('is-hidden')
     })
-function handleClick(event) {
-    event.preventDefault();
-    const url = event.target.getAttribute('href');
-    fetch(url)
-        .then(response => response.text())
-        .then(html => {
-            updateTableAndPaginator(html, deptId)
-            addEventListenerToAnchorTag(deptId);
-        });
-}
 
-function addEventListenerToAnchorTag(deptId) {
-        console.log('im here now')
-
-    const paginationLinks = document.querySelectorAll(`.custom-pagination-${deptId} a`)
-    if (paginationLinks >0){
-    paginationLinks.forEach(link => {
-        console.log('event added')
-        link.addEventListener('click', handleClick); // Add the handleClick function as the event listener
-    });
+    function handleClick(deptId) {
+        return function (event) {
+            event.preventDefault();
+            const url = event.target.getAttribute('href');
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    updateTableAndPaginator(html, deptId);
+                    addEventListenerToAnchorTag(deptId);
+                });
+        };
     }
-    else{
-        console.log('no links found')
+
+    function addEventListenerToInputSearch(deptId) {
+
+        const inputs = document.querySelectorAll(`.account-input-search-${deptId}`)
+        console.log(inputs)
+
+        if (inputs.length > 0) {
+            inputs.forEach(input => {
+                console.log(input)
+                criteria.addEventListener('change', (ev) => {
+                    input.removeAttribute('disabled');
+                    selectedFilter = ev.target.value;
+                });
+                input.addEventListener('input', (ev) => {
+                    const val = ev.target.value.trim();
+                    let deptartment = input.dataset.dept;
+
+                    if (val === "") {
+                        tableBody.innerHTML = "";
+                        return;
+                    }
+                    // Fetch data based on search criteria
+                    fetch(`/account/search?filter=${selectedFilter}&value=${val}&department=${deptartment}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            const data = result.data;
+                            tableBody.innerHTML = "";
+                            data.forEach(acc => {
+                                const row = document.createElement('tr');
+                                row.setAttribute('role', 'row');
+                                row.setAttribute('data-total', acc.total);
+
+                                const accountIdCell = document.createElement('td');
+                                accountIdCell.setAttribute('data-label', 'Account id');
+                                accountIdCell.textContent = acc.account_id;
+                                row.appendChild(accountIdCell);
+
+                                const accountNameCell = document.createElement('td');
+                                accountNameCell.setAttribute('data-label', 'Account name');
+                                accountNameCell.textContent = acc.account__acctdesc;
+                                row.appendChild(accountNameCell);
+
+                                const currencyCell = document.createElement('td');
+                                currencyCell.textContent = acc.currency__currency;
+                                row.appendChild(currencyCell);
+
+                                const yearCell = document.createElement('td');
+                                yearCell.textContent = acc.year;
+                                row.appendChild(yearCell);
+
+                                const budgetTotalCell = document.createElement('td');
+                                budgetTotalCell.setAttribute('data-label', 'Total');
+                                budgetTotalCell.textContent = acc.total;
+                                row.appendChild(budgetTotalCell);
+
+                                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                months.forEach((month, index) => {
+                                    const monthCell = document.createElement('td');
+                                    monthCell.setAttribute('data-label', month);
+                                    monthCell.textContent = acc[`period${index + 1}`];
+                                    row.appendChild(monthCell);
+                                });
+
+                                const actionsCell = document.createElement('td');
+                                actionsCell.className = 'is-actions-cell';
+                                const buttonsDiv = document.createElement('div');
+                                buttonsDiv.className = 'buttons is-right';
+
+                                const editButton = document.createElement('a');
+                                editButton.className = 'button is-small is-light';
+                                editButton.type = 'button';
+                                editButton.href = acc.id ? `/update/${acc.id}` : '';
+                                const editIcon = document.createElement('span');
+                                editIcon.className = 'icon';
+                                editIcon.innerHTML = '<i class="mdi mdi-file-edit"></i>';
+                                editButton.appendChild(editIcon);
+
+                                const deleteButton = document.createElement('a');
+                                deleteButton.className = 'button is-small is-danger-passive';
+                                deleteButton.type = 'button';
+                                deleteButton.href = acc.id ? `/delete_budget/${acc.id}` : '';
+                                deleteButton.setAttribute('data-target', 'sample-modal');
+                                const deleteIcon = document.createElement('span');
+                                deleteIcon.className = 'icon';
+                                deleteIcon.innerHTML = '<i class="mdi mdi-trash-can"></i>';
+                                deleteButton.appendChild(deleteIcon);
+
+                                buttonsDiv.appendChild(editButton);
+                                buttonsDiv.appendChild(deleteButton);
+                                actionsCell.appendChild(buttonsDiv);
+                                row.appendChild(actionsCell);
+
+                                // Append more cells as needed
+
+                                tableBody.appendChild(row);
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                });// Add the handleClick function as the event listener
+            })
+        } else {
+            console.log('no links found')
+        }
     }
-}
 
-function updateTableAndPaginator(html, deptId) {
-    const parser = new DOMParser();
-    const newDoc = parser.parseFromString(html, 'text/html');
-    const newRow = newDoc.querySelectorAll(`#table-body-${deptId} tr`);
-    const newTable = newDoc.getElementById(`table-body-${deptId}`);
-    const newPaginator = newDoc.getElementById(`paginator-${deptId}`);
-    document.getElementById(`table-body-${deptId}`).replaceWith(newTable);
-    document.getElementById(`paginator-${deptId}`).replaceWith(newPaginator);
+    function addEventListenerToAnchorTag(deptId) {
 
-    // Add any other necessary post-update operations
-}
+        const paginationLinks = document.querySelectorAll(`.custom-pagination-${deptId} a`)
+        if (paginationLinks.length > 0) {
+            paginationLinks.forEach(link => {
+                link.addEventListener('click', handleClick(deptId)); // Add the handleClick function as the event listener
+            });
+        } else {
+            console.log('no links found')
+        }
+    }
+
+    function updateTableAndPaginator(html, deptId) {
+        const parser = new DOMParser();
+        const newDoc = parser.parseFromString(html, 'text/html');
+        console.log(newDoc)
+        const newRow = newDoc.querySelectorAll(`#table-body-${deptId} tr`);
+        const newTable = newDoc.getElementById(`table-body-${deptId}`);
+        const newPaginator = newDoc.getElementById(`paginator-${deptId}`);
+        document.getElementById(`table-body-${deptId}`).replaceWith(newTable);
+        document.getElementById(`paginator-${deptId}`).replaceWith(newPaginator);
+
+        // Add any other necessary post-update operations
+    }
 
 // Add the event listener to the first pagination link for each department
-const deptIds = ['ceo', 'internal_audit', 'supply_chain', 'bds', 'public_relations', 'technical', 'information_systems', 'legal_risk', 'human_capital', 'sales_marketing', 'admin', 'finance'];
-deptIds.forEach(deptId => {
-    addEventListenerToAnchorTag(deptId);
-});
+    const deptIds = ['CEO', 'Internal Audit', 'Supply Chain', 'BDS', 'Public Relations', 'Technical', '\n' +
+    'Information Systems', 'Legal & Risk', 'Human Capital', 'Sales & Marketing', 'Administration', 'Finance', 'Assets', 'Equity', 'Liabilities', 'Income', 'Clearing'];
+    deptIds.forEach(deptId => {
+        addEventListenerToAnchorTag(deptId);
+        addEventListenerToInputSearch(deptId)
+
+    });
 });

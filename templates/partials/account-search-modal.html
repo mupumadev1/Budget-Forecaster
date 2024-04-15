@@ -1,4 +1,5 @@
-<div id="account-search-modal" class="modal">
+{% load filters %}
+<div {% if dept %}id="account-search-modal-{{ dept_name }}"{% else %}id="account-search-modal"{% endif %} class="modal">
     <div class="modal-background jb-modal-close"></div>
     <div class="modal-card">
         <header class="modal-card-head">
@@ -29,29 +30,101 @@
                 <div class="field-body">
                     <div class="field">
                         <div class="control">
-                            <input class="input" type="text" id="account-input-search" disabled>
+                            <input {% if dept %} class="input account-input-search-{{ dept_name }}"
+                                                 data-dept="{{ dept_id }}" {% else %} class="input"
+                                                 id="account-input-search"{% endif %} type="text" disabled>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="table-container" style="height: 150px; overflow-y: scroll;">
-                <table class="table is-bordered is-fullwidth  is-narrow " id="search-modal-table">
-                    <thead class="is-static">
-                    <th>Account ID</th>
-                    <th>Account Name</th>
+            {% if dept %}
+            <div class="table-wrapper has-mobile-cards"
+                 style="overflow:auto;max-height:400px;">
+                <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                       role="grid">
+                    <thead>
+                    <tr>
+                        <th>Account ID</th>
+                        <th>Account Name</th>
+                        <th>Currency</th>
+                        <th>Year</th>
+                        <th>Total</th>
+                        <th>Jan</th>
+                        <th>Feb</th>
+                        <th>Mar</th>
+                        <th>Apr</th>
+                        <th role="columnheader">May</th>
+                        <th role="columnheader">Jun</th>
+                        <th role="columnheader">Jul</th>
+                        <th role="columnheader">Aug</th>
+                        <th role="columnheader">Sep</th>
+                        <th role="columnheader">Oct</th>
+                        <th role="columnheader">Nov</th>
+                        <th role="columnheader">Dec</th>
+                        <th></th>
+
+                    </tr>
                     </thead>
-                    <tbody id="table-body">
-                    
+                    <tbody class="budget-table-body" id="table-body" role="rowgroup">
 
-                        <tr>
-                            <td><a class="has-text-black has-text-centered" ></a></td>
-                            <td><a class="has-text-black has-text-centered" ></a></td>
-                        </tr>
-                   
+                            <tr role="row" data-total="{{ acc.total }}">
+                                <td data-label="Account id"></td>
+                                <td data-label="Account name"
+                                    style="width: 10%;"></td>
+                                <td></td>
+                                <td></td>
+                                <td data-label="Budget Total"></td>
+                                <td data-label="Jan"></td>
+                                <td data-label="Feb">
+                                </td>
+                                <td data-label="Mar">
+                                </td>
+                                <td data-label="Apr">
+                                </td>
+                                <td data-label="May">
+                                </td>
+                                <td data-label="Jun">
+                                </td>
+                                <td data-label="Jul">
+                                </td>
+                                <td data-label="Aug">
+                                </td>
+                                <td data-label="Sep">
+                                </td>
+                                <td data-label="Oct">
+                                </td>
+                                <td data-label="Nov">
+                                </td>
+                                <td data-label="Dec">
+                                </td>
+                                <td class="is-actions-cell">
 
+                                </td>
+                            </tr>
                     </tbody>
                 </table>
             </div>
+
+            {% else %}
+                <div class="table-container" style="height: 150px; overflow-y: scroll;">
+                    <table class="table is-bordered is-fullwidth  is-narrow " id="search-modal-table">
+                        <thead class="is-static">
+                        <th>Account ID</th>
+                        <th>Account Name</th>
+                        </thead>
+                        <tbody id="table-body">
+
+
+                        <tr>
+                            <td><a class="has-text-black has-text-centered"></a></td>
+                            <td><a class="has-text-black has-text-centered"></a></td>
+                        </tr>
+
+
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
 
         </section>
         <footer class="modal-card-foot">
