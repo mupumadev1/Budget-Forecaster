@@ -45,7 +45,7 @@
                     {% endfor %}
                 {% endif %}
             </div>
-            <form class="login100-form validate-form" method="POST" action="{% url 'budgets:login' %}">
+            <form class="login100-form validate-form" id="login-form" method="POST" action="{% url 'budgets:login' %}">
                 {% csrf_token %}
                 <span class="login100-form-title p-b-26">
                     <h3> Budget Integration Portal</h3>
