@@ -1,4 +1,5 @@
 from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.hashers import make_password
 
 
 class MyAbstractUserManager(BaseUserManager):
@@ -6,11 +7,10 @@ class MyAbstractUserManager(BaseUserManager):
 
     def create_user(self, username, password, **extra_fields):
         if not username:
-            raise ValueError('The Username must be set')
-        user = self.model(username=username, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
+            raise ValueError('The username must be set')
+
+        return self.create_user(username, password, **extra_fields)
+
 
     def create_superuser(self, username, password, **extra_fields):
         extra_fields.setdefault('is_staff', True)

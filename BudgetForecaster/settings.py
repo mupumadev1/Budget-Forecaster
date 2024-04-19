@@ -92,9 +92,9 @@ DATABASES = {
     'sql_server': {
         'ENGINE': 'mssql',
         'NAME': 'INFDAT',
-        'USER': 'sa',  # 'saservice',  # os.environ.get('DATABASE_USER'),
-        'PASSWORD': 'Admin123',  # 'mJ@PcJ!pNVs2*AW',
-        'HOST': 'localhost',  # '10.52.11.50',
+        'USER':  'saservice',  # os.environ.get('DATABASE_USER'),
+        'PASSWORD':  'mJ@PcJ!pNVs2*AW',
+        'HOST': '10.52.11.50',
         'PORT': '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
@@ -155,19 +155,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [(
-                'redis://default:O9DIHMBgnKw31JfiEAraG44fktXWFkuT@redis-12184.c299.asia-northeast1-1.gce.cloud.redislabs.com:12184'
-            )],
-            # Update with your Redis server details
-        }
+        'LOCATION': 'redis://localhost:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
 
     },
 }
 """
-         'LOCATION': 'redis://localhost:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },"""
+       """
 # O9DIHMBgnKw31JfiEAraG44fktXWFkuT!
 # redis-cli -u redis://default:O9DIHMBgnKw31JfiEAraG44fktXWFkuT@redis-12184.c299.asia-northeast1-1.gce.cloud.redislabs.com:12184

@@ -9,7 +9,7 @@
 
         <a class="jb-modal mr-1 mt-2" data-target="account-search-modal-{{ dept_name }}"><span
                 class="mdi mdi-search-web mdi-24px has-text-black"></span></a>
-
+{% if request.user.role == '002' %}
         <select class="select my-2" style="border:0" name="budget_set"
                 onchange="navigateToBudget(this.value)">
 
@@ -23,6 +23,11 @@
             </option>
 
         </select>
+    {% else %}
+         <button class="button is-light-passive m-1 is-outlined is-small">
+             <span class="has-text-weight-bold">{{ activebs }}</span>
+         </button>
+    {% endif %}
         <a class="card-header-icon accordion-button">
             <span class="icon"><i class="mdi mdi-plus-thick mdi-18px"></i></span>
         </a>

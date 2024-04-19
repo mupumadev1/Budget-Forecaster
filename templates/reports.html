@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load filters %}
+{% load static %}
+{% block content %}
+    <div id="loader" class="loader is-hidden"></div>
+    <div id="app">
+        <section class="section is-title-bar">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="hero is-hero-bar">
+            <div class="hero-body">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item"><h1 class="title">
+                            Generate Reports
+                        </h1></div>
+                    </div>
+                    <div class="level-right">
+                    </div>
+                </div>
+            </div>
+        </section>
+     <section class="hero is-hero-bar">
+            <div class="hero-body">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <select class="select my-2" >
+                                <option>All</option>
+                                <option>Capex</option>
+                                <option>Opex</option>
+                                <option>Assets</option>
+                                <option>Liabilities</option>
+                                <option>Income</option>
+                                <option>Equity</option>
+                                <option>Clearing</option>
+                                <option>CEO</option>
+                                <option>Administration</option>
+                                <option>Finance</option>
+                                <option></option>
+                                <option>clearing</option>
+                                <option>clearing</option>
+                                <option>clearing</option>
+                                <option>clearing</option>
+                                <option>clearing</option>
+                                <option>clearing</option>
+                                <option>clearing</option>
+                                <option>clearing</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <button class="button">View</button>
+                        <button class="button">Download</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="section is-main-section ">
+            
+       
+            <div class="table-wrapper has-mobile-cards"
+                 style="overflow:auto;max-height:400px;">
+                <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                       role="grid">
+                    <thead>
+                    <tr>
+                        <th>Account ID</th>
+                        <th>Account Name</th>
+                        <th>Currency</th>
+                        <th>Year</th>
+                        <th>Total</th>
+                        <th>Jan</th>
+                        <th>Feb</th>
+                        <th>Mar</th>
+                        <th>Apr</th>
+                        <th role="columnheader">May</th>
+                        <th role="columnheader">Jun</th>
+                        <th role="columnheader">Jul</th>
+                        <th role="columnheader">Aug</th>
+                        <th role="columnheader">Sep</th>
+                        <th role="columnheader">Oct</th>
+                        <th role="columnheader">Nov</th>
+                        <th role="columnheader">Dec</th>
+
+                    </tr>
+                    </thead>
+                    <tbody class="budget-table-body" id="table-body" role="rowgroup">
+                    {% for acc in dept %}
+                        {% if acc %}
+                            <tr role="row" data-total="{{ acc.total }}">
+                                <td data-label="Account id">{{ acc.account.acctfmttd }}</td>
+                                <td data-label="Account name"
+                                    style="width: 10%;">{{ acc.account.acctdesc }}</td>
+                                <td>{{ acc.currency.currency }}</td>
+                                <td>{{ acc.year }}</td>
+                                <td data-label="Budget Total">{{ acc.total }}</td>
+                                <td data-label="Jan">{{ acc.period1 }}</td>
+                                <td data-label="Feb">{{ acc.period2 }}
+                                </td>
+                                <td data-label="Mar">{{ acc.period3 }}
+                                </td>
+                                <td data-label="Apr">{{ acc.period4 }}
+                                </td>
+                                <td data-label="May">{{ acc.period5 }}
+                                </td>
+                                <td data-label="Jun">{{ acc.period6 }}
+                                </td>
+                                <td data-label="Jul">{{ acc.period7 }}
+                                </td>
+                                <td data-label="Aug">{{ acc.period8 }}
+                                </td>
+                                <td data-label="Sep">{{ acc.period9 }}
+                                </td>
+                                <td data-label="Oct">{{ acc.period10 }}
+                                </td>
+                                <td data-label="Nov">{{ acc.period11 }}
+                                </td>
+                                <td data-label="Dec">{{ acc.period12 }}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr role="row">
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+        </section>
+
+    </div>
+{% endblock %}
+{% block extra-scripts %}
+
+{% endblock %}

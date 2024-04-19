@@ -11,6 +11,7 @@ urlpatterns = [
                   path('update/assumptions/', views.budget_assumptions, name='assumptions'),
                   path('create', views.create_user, name='create'),
                   path('report/', views.generate_excel, name='report'),
+                  path('reports/', views.reports, name='reports'),
                   path('settings/', views.budget_settings, name='settings'),
                   path('settings/<int:dept_id>/', views.department_budget_settings, name='department-settings'),
                   path('logout/', views.user_logout, name='logout'),

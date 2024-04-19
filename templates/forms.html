@@ -434,7 +434,7 @@
                                 </div>
                                 {% if request.user.role != '002' %}
 
-                                    <button type="submit" id="submitButton"
+                                    <button
                                             class="button is-light-passive m-1 is-outlined is-small">
                                         <span class="has-text-weight-bold">{{ activebs }}</span>
                                     </button>
@@ -572,7 +572,12 @@
                                             </td>
                                             <td class="is-actions-cell">
                                                 <div class="buttons is-right">
-
+                                                     <a data-target="edit-form-settings-modal"
+                                                       class="jb-modal button is-small is-danger-passive "
+                                                       type="button">
+                                                                <span class="icon"><i
+                                                                        class="mdi mdi-file-edit"></i></span>
+                                                    </a>
                                                     <a href="{% url 'budgets:clear-line' acc.id %}"
                                                        class="button is-small is-danger-passive "
                                                        data-target="sample-modal"
@@ -602,6 +607,8 @@
             </section>
             {% include 'partials/account-search-modal.html' %}
             {% include 'partials/entry-type-modal.html' %}
+            {% include 'partials/budget-edit-modal.html' %}
+
         {% else %}
             <section class="section is-main-section">
                 <div class="card">

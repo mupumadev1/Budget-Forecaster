@@ -1,0 +1,84 @@
+{% load filters %}
+<div id="completion-modal" class="modal is-large">
+    <div class="modal-background jb-modal-close"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Budget Status</p>
+            <button class="delete jb-modal-close" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+        {% if status.is_complete == True %}
+            <div class="notification is-info changeNotification" style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                <span class="icon"><i class="mdi mdi-buffer default"></i></span>
+                <b>Provide reason and submit request for changes <button type="button" class="button is-small is-white jb-notification-dismiss">Dismiss</button></b>
+                </div>
+            </div>
+        {% endif %}
+            <form>
+                                    {% csrf_token %}
+                                    <div class="field has-check is-horizontal">
+                                        <div class="field-label is-normal">
+                                            <label class="label">Complete</label>
+                                        </div>
+
+                                        <div class="field mt-2">
+                                            <div class="control">
+                                                <label class="b-checkbox checkbox">
+                                                    <input class="input" type="checkbox" id="is_complete"
+                                                           name="is_complete"
+                                                            {% if status.is_complete %} checked {% endif %}
+                                                    >
+                                                    <span class="check is-info"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="field-label is-normal">
+                                            <label class="label"> Add Comment </label>
+                                        </div>
+                                        <div class="field-body">
+                                            <div class="field">
+                                                <div class="control">
+                                                    <input class="textarea" type="text" id="comments" name="comments"
+                                                           value="
+                                                            {% if status.is_complete %}{{ status.comment }}{% endif %}"
+                                                           placeholder="">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="field is-horizontal">
+                                        <div style="margin-left: 11%"></div>
+                                        <hr>
+                                        <div class="field-body">
+                                            <div class="field">
+                                                <div class="field is-grouped">
+                                                    <div class="control">
+                                                        {% if status.is_complete == False %}
+                                                            <button type="submit"
+                                                                    data-id="{{ status.budget_set }}"
+                                                                    id="settingsSubmitButton"
+                                                                    class="button is-info">
+                                                                <span>Save</span>
+                                                            </button>
+                                                        {% else %}
+                                                            <button type="submit" id="changeButton"
+                                                                    data-id="{{ status.budget_set }}"
+                                                                    class="button is-info">
+                                                                <span>Save</span>
+                                                            </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+        </section>
+        <footer class="modal-card-foot">
+        </footer>
+    </div>
+    <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
+</div>

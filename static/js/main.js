@@ -31,13 +31,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const monthsDiv = document.getElementById('months-div')
     const submitBtn = document.getElementById('submitButton')
     const formDiv = document.getElementById('add-line')
-    const button2Element = document.getElementById("changeButton");
-    const buttonElement = document.getElementById("settingsSubmitButton");
+    const button2Element = document.querySelector("[id='changeButton']");
+    const buttonElement = document.querySelector("[id='settingsSubmitButton']");
     const rate = document.getElementById('rate')
     const factor = document.getElementById('factor')
     let quarter = []
     let mths = []
-    addEventListenerToAnchorTag();
     if (buttonElement) {
         buttonElement.addEventListener("click", function (ev) {
             ev.preventDefault()
@@ -139,7 +138,6 @@ document.addEventListener("DOMContentLoaded", function () {
             dept.addEventListener('click', (ev) => {
                 ev.preventDefault();
                 var dept_id = dept.getAttribute('data-deptid');
-                console.log(dept_id);
                 window.location.href = '/update/expenses/' + dept_id;
             });
         })
@@ -204,7 +202,13 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-
+ function getCSRFToken() {
+        let csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken')).split('=')[1];
+        if (csrfToken == null) {
+            csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+        }
+        return csrfToken;
+    }
 //setup chat scoket
     const notifyScoket = new WebSocket(
         'ws://'
@@ -229,56 +233,94 @@ document.addEventListener("DOMContentLoaded", function () {
     notifyScoket.onmessage = function (e) {
         const data = JSON.parse(e.data);
         const message = data.message;
-        // Call the setMessage function to add the new li element
-        console.log(message)
         setMessage(message);
-        markAsRead();
+
 
     };
-
-    function getCSRFToken() {
-        let csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken')).split('=')[1];
-        if (csrfToken == null) {
-            csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-        }
-        return csrfToken;
-    }
-
     function setMessage(message) {
-        // Create a new li element
-        var newLi = document.createElement('li');
+  // Generate a unique notification ID
+  const notificationId = generateNotificationId();
 
-        // Create a new anchor element
-        var newAnchor = document.createElement('a');
-        newAnchor.className = 'navbar-item is-clipped is-size-7'
-        newAnchor.textContent = message;
-        newAnchor.style.wordBreak = 'break-word'
-        newAnchor.id = 'notification-anchor'
+  // Create a new notification object with the message and ID
+  const notification = {
+    id: notificationId,
+    message: message
+  };
+
+  // Save the notification object in local storage
+  const notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+  notifications.push(notification);
+  localStorage.setItem('notifications', JSON.stringify(notifications));
+
+  // Create the new notification element
+  const newAnchor = document.createElement('a');
+  newAnchor.className = 'navbar-item is-clipped is-size-7';
+  newAnchor.textContent = message;
+  newAnchor.style.wordBreak = 'break-word';
+  newAnchor.id = notificationId;
+
+  // Append the new notification element to the notification container
+  const divElement = document.getElementById('notify');
+  divElement.appendChild(newAnchor);
+    markAsRead(notification.id)
+  // Update the notification count
+  const count = document.getElementById('bellCount').getAttribute('data-count');
+  document.getElementById('bellCount').setAttribute('data-count', parseInt(count) + 1);
+}
+
+function generateNotificationId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
 
-        // Append the anchor element to the li element
-        newLi.appendChild(newAnchor);
-        newLi.style.display = 'block';
-        // Get the ul element with the id "notify"
-        var ulElement = document.getElementById('notify');
+function markAsRead(notificationId) {
+  var anchorElement = document.getElementById(notificationId);
+if (anchorElement) {
+    anchorElement.addEventListener('click', () => {
+        // Remove the notification from local storage
+        const notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+        const updatedNotifications = notifications.filter(notification => notification.id !== notificationId);
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
 
-        // Append the new li element to the ul element
-        ulElement.appendChild(newLi);
+        // Hide the notification element
+        anchorElement.classList.add('is-hidden');
+        const count = document.getElementById('bellCount').getAttribute('data-count');
+        document.getElementById('bellCount').setAttribute('data-count', parseInt(count) - 1);
 
-        // getting object of count
-        var count = document.getElementById('bellCount').getAttribute('data-count');
-        document.getElementById('bellCount').setAttribute('data-count', parseInt(count) + 1);
+        // Redirect to the desired page (e.g., "/settings")
+        //window.location.href = "/settings";
+    });
+}
+}
+
+function loadNotifications() {
+  const notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+
+  notifications.forEach(notification => {
+    const newAnchor = document.createElement('a');
+    newAnchor.className = 'navbar-item is-clipped is-size-7';
+    newAnchor.textContent = notification.message;
+    newAnchor.style.wordBreak = 'break-word';
+    newAnchor.id = notification.id;
+
+    const divElement = document.getElementById('notify');
+    if (divElement){
+        divElement.appendChild(newAnchor);
+
     }
+    const bell = document.getElementById('bellCount')
+      if (bell){
+        const count = bell.getAttribute('data-count');
+        bell.setAttribute('data-count', parseInt(count) + 1);
+      }
 
-    function markAsRead() {
-        var anchorElement = document.getElementById('notification-anchor');
-
-        anchorElement.addEventListener('click', () => {
-            anchorElement.classList.add('is-hidden')
-            window.location.href = "/settings"
-        })
-    }
-
+    // Add event listener to mark notification as read
+    newAnchor.addEventListener('click', () => {
+      markAsRead(notification.id);
+    });
+  });
+}
+loadNotifications()
 
     if (asideToggle) {
         asideToggle.addEventListener('click', function () {
@@ -311,7 +353,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.querySelectorAll('.menu-list li').forEach(el => {
         el.addEventListener('click', e => {
-            console.log(e.target.className)
             e.currentTarget.classList.toggle('is-active');
             const dropdownIcon = e.currentTarget.querySelector('.dropdown-icon .icon i');
             dropdownIcon.classList.toggle('mdi-plus');
@@ -354,14 +395,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         search.addEventListener('input', (ev) => {
             const val = ev.target.value.trim();
-            let deptartment = search.dataset.dept;
 
             if (val === "") {
                 tableBody.innerHTML = "";
                 return;
             }
             // Fetch data based on search criteria
-            fetch(`/account/search?filter=${selectedFilter}&value=${val}&department=${deptartment}`)
+            fetch(`/account/search?filter=${selectedFilter}&value=${val}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -430,7 +470,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         mths.push(checkbox.value);
                     });
 
-                    console.log(mths);
                 });
             });
         } else if (quarterCB.checked) {
@@ -445,7 +484,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     checkedBoxes.forEach(function (checkbox) {
                         quarter.push(checkbox.value);
                     });
-                    console.log(quarter);
                 });
             });
 
@@ -516,7 +554,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     const rate = selectedCurrencyOption.dataset.rate;
                     let total
                     const nonZeroVariables = [formData['rate'], formData['usage'], formData['factor'], formData['staff']].filter(value => value !== 0);
-                    console.log(formData)
                     if (nonZeroVariables.length > 0) {
                         total = nonZeroVariables.reduce((accumulator, currentValue) => accumulator * currentValue);
                         total = total * rate
@@ -549,7 +586,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                         });
 
-                        console.log(formData);
                     } else if (quarterCB.checked) {
                         let dividend = total / quarter.length;
 
@@ -569,7 +605,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                         }
                     }
-                    console.log(formData)
                     formData['exchange_rate'] = rate
                     formData['entryType'] = 'function'
                     $.ajax({
@@ -581,7 +616,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             window.location.href = ``
                         },
                         error: function (resp) {
-                            console.log(resp);
 
                             alert('An error occurred while submitting.');
                         }
@@ -604,7 +638,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     }
                     formData['total'] = total
-                    console.log(formData)
                     $.ajax({
                         url: ``,
                         type: 'POST',
@@ -718,7 +751,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         $(this).text($(this).find("input").val());
                     }
                 });
-                console.log(newData)
                 // Assuming you have a function to send data to backend
                 sendDataToBackend(newData, function () {
                     $(this).data("action", "edit").find("i").removeClass("mdi-plus").addClass("mdi-file-edit");
@@ -739,7 +771,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         $(this).text($(this).find("input").val());
                     }
                 });
-                console.log(newData)
                 // Assuming you have a function to send data to backend
                 sendDataToBackend(newData, function () {
                     $(this).data("action", "edit").find("i").removeClass("mdi-plus").addClass("mdi-file-edit");
@@ -752,7 +783,6 @@ document.addEventListener("DOMContentLoaded", function () {
     function sendDataToBackend(data, callback) {
         // Perform AJAX request to send data to the backend
         var processedData = preprocessData(data);
-        console.log(processedData)
         $.ajax({
             url: "/update/assumptions/",
             method: "POST",
@@ -820,11 +850,14 @@ document.addEventListener("DOMContentLoaded", function () {
     $("#addCurrencyRowBtn").click(function () {
         addCurrencyRow();
     });
-    document.getElementById('expenseBtn').addEventListener('click', ev => {
-        ev.preventDefault()
-        document.getElementById('expenses').classList.toggle('is-hidden')
-    })
+    const expensesBtn = document.getElementById('expenseBtn')
+        if (expensesBtn) {
 
+            expensesBtn.addEventListener('click', ev => {
+                ev.preventDefault()
+                document.getElementById('expenses').classList.toggle('is-hidden')
+            })
+        }
     function handleClick(deptId) {
         return function (event) {
             event.preventDefault();
@@ -839,14 +872,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function addEventListenerToInputSearch(deptId) {
-
-        const inputs = document.querySelectorAll(`.account-input-search-${deptId}`)
-        console.log(inputs)
-
+        console.log(deptId)
+        const inputs = document.querySelectorAll(`[class*="input account-input-search-${deptId}"]`)
+       console.log(inputs)
         if (inputs.length > 0) {
             inputs.forEach(input => {
-                console.log(input)
-                criteria.addEventListener('change', (ev) => {
+                const fieldBody = input.closest('.modal');
+                const criteriaSelect = fieldBody.querySelector('#search-criteria');
+                const currentTableBody = fieldBody.querySelector('#table-body');
+                criteriaSelect.addEventListener('change', (ev) => {
                     input.removeAttribute('disabled');
                     selectedFilter = ev.target.value;
                 });
@@ -855,7 +889,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     let deptartment = input.dataset.dept;
 
                     if (val === "") {
-                        tableBody.innerHTML = "";
+                        currentTableBody.innerHTML = "";
                         return;
                     }
                     // Fetch data based on search criteria
@@ -868,7 +902,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         })
                         .then(result => {
                             const data = result.data;
-                            tableBody.innerHTML = "";
+                            console.log(data)
+                            currentTableBody.innerHTML = "";
                             data.forEach(acc => {
                                 const row = document.createElement('tr');
                                 row.setAttribute('role', 'row');
@@ -936,7 +971,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 // Append more cells as needed
 
-                                tableBody.appendChild(row);
+                                currentTableBody.appendChild(row);
                             });
                         })
                         .catch(error => {
@@ -944,8 +979,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
                 });// Add the handleClick function as the event listener
             })
+
         } else {
-            console.log('no links found')
         }
     }
 
@@ -957,14 +992,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 link.addEventListener('click', handleClick(deptId)); // Add the handleClick function as the event listener
             });
         } else {
-            console.log('no links found')
         }
     }
 
     function updateTableAndPaginator(html, deptId) {
         const parser = new DOMParser();
         const newDoc = parser.parseFromString(html, 'text/html');
-        console.log(newDoc)
         const newRow = newDoc.querySelectorAll(`#table-body-${deptId} tr`);
         const newTable = newDoc.getElementById(`table-body-${deptId}`);
         const newPaginator = newDoc.getElementById(`paginator-${deptId}`);
@@ -975,8 +1008,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 // Add the event listener to the first pagination link for each department
-    const deptIds = ['CEO', 'Internal Audit', 'Supply Chain', 'BDS', 'Public Relations', 'Technical', '\n' +
-    'Information Systems', 'Legal & Risk', 'Human Capital', 'Sales & Marketing', 'Administration', 'Finance', 'Assets', 'Equity', 'Liabilities', 'Income', 'Clearing'];
+    const deptIds = ['CEO', 'Internal Audit', 'Supply Chain', 'BDS', 'Public Relations', 'Technical','Information Systems', 'Legal & Risk', 'Human Capital', 'Sales & Marketing', 'Administration', 'Finance', 'Assets', 'Equity', 'Liabilities', 'Income', 'Clearing'];
     deptIds.forEach(deptId => {
         addEventListenerToAnchorTag(deptId);
         addEventListenerToInputSearch(deptId)

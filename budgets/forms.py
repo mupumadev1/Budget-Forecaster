@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.forms import ModelForm, forms, inlineformset_factory
 from django.utils.crypto import get_random_string
-
+from django.contrib.auth.hashers import make_password
 from budgets.models import BudgetLines, Users, BudgetComments, BudgetStatus
 
 
@@ -29,6 +29,7 @@ class UserCreate(ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         otp_base32 = pyotp.random_base32()
+        password = self.cleaned_data.get("password")
         email = self.cleaned_data.get("email")
         otp_auth_url = pyotp.totp.TOTP(otp_base32).provisioning_uri(
             name=email.lower(), issuer_name="mupumaDev"
@@ -41,6 +42,8 @@ class UserCreate(ModelForm):
         user.qr_code = ContentFile(
             stream.getvalue(), name=f"qr{get_random_string(10)}.png"
         )
+        user.email = email
+        user.password = make_password(password)
         user.save()
 
         return user

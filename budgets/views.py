@@ -262,7 +262,9 @@ def opex_index(request, budget_set):
     else:
         return redirect('budgets:login')
 
+def reports(request):
 
+    return render(request,'reports.html')
 def generate_excel(request):
     # Define the header row for the Excel file
     excel_header = ['Account Number', 'Period 1', 'Period 2', 'Period 3', 'Q1', 'Period 4', 'Period 5', 'Period 6', 'Q2', 'H1', 'Period 7', 'Period 8', 'Period 9',
@@ -468,6 +470,7 @@ def accounts_search(request):
     if dept :
         account_info = BudgetTotals.objects.filter(Q(budget_set__in=active), **{field_mapping[filter]: value},
                                                    department=dept).values('id','total','account_id', 'account__acctdesc','year','currency__currency','period1','period2','period3','period4','period5','period6','period7','period8','period9','period10','period11','period12').all()
+        print(account_info)
         return JsonResponse({'data': list(account_info)}, status=200)
     else:
         if filter in field_mapping and value:
@@ -981,6 +984,7 @@ def user_login(request):
                 return redirect("budgets:login")
 
         except Exception as e:
+            print(e)
             messages.error(request, message="An error occurred. Please try again.")
 
             return redirect("budgets:login")

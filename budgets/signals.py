@@ -15,9 +15,10 @@ def ensure_single_active(sender, instance, **kwargs):
         dept = instance.department.id
         # Ensure that only one object has a True value
         if sender.objects.filter(is_active=True,department_id=dept).exclude(id=instance.id).exists():
+            instance.is_active = False
+            instance.full_clean()
             raise ValidationError('There can only be one active budget-set per department')
         # Set all other objects to False
-        sender.objects.filter(is_active=True).exclude(id=instance.id).update(is_active=False)
 
 @receiver(post_save, sender=BudgetLines)
 def save_budget_line_log(sender, instance, created, **kwargs):
@@ -62,8 +63,11 @@ def handle_budget_status_changes(sender, instance, **kwargs):
 
         # Update flag field in ChangeLog model based on is_complete changes
         if original.is_complete and not instance.is_complete:  # Change condition here
-            ChangeLog.objects.filter(department=instance.department, budget_set=instance.budget_set).update(
-                flag=True)
+            log_obj = ChangeLog.objects.filter(department=instance.department, budget_set=instance.budget_set)
+            if log_obj.exists():
+                log_obj.update(flag=True)
+            else:
+                ChangeLog.objects.create(flag=True,department=instance.department, budget_set=instance.budget_set)
         elif not original.is_complete and instance.is_complete:
             ChangeLog.objects.filter(department=instance.department, budget_set=instance.budget_set).update(
                 flag=False)
@@ -71,6 +75,7 @@ def handle_budget_status_changes(sender, instance, **kwargs):
         # Send notifications based on is_complete changes
         if original.is_complete != instance.is_complete:
             channel_layer = get_channel_layer()
+            id = instance
             if instance.is_complete:
                 message = "Budget Set " + instance.get_budget_set_display() + " from the " + instance.department.name + " department has been marked as complete"
             else:
