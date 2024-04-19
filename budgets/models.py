@@ -1,10 +1,7 @@
 from datetime import datetime, timezone
 
 from django.contrib.auth.models import AbstractUser, PermissionsMixin
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
-
 from simple_history.models import HistoricalRecords
 
 ROLE = (
@@ -138,9 +135,9 @@ class BudgetAssumptions(models.Model):
 
 class BudgetTotals(models.Model):
     account = models.ForeignKey(Accounts, on_delete=models.CASCADE)
-    currency = models.ForeignKey(Currency, on_delete=models.CASCADE,default=1)
+    currency = models.ForeignKey(Currency, on_delete=models.CASCADE, default=1)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
-    year =  models.CharField(max_length=4, default='2024')
+    year = models.CharField(max_length=4, default='2024')
     total = models.DecimalField(decimal_places=2, max_digits=20, null=True)
     period1 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
     period2 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
@@ -161,27 +158,58 @@ class BudgetTotals(models.Model):
     exchange_rate = models.DecimalField(decimal_places=2, max_digits=20, null=True)
     history = HistoricalRecords()
 
+    def calculate_quarter_sums(self):
+        # Calculate the sum of each quarter based on the period fields
+        q1 = self.period1 + self.period2 + self.period3
+        q2 = self.period4 + self.period5 + self.period6
+        q3 = self.period7 + self.period8 + self.period9
+        q4 = self.period10 + self.period11 + self.period12
+
+        # Update the instance with the calculated quarter sums
+        self.Q1 = q1
+        self.Q2 = q2
+        self.Q3 = q3
+        self.Q4 = q4
+
+        # Save the instance to persist the changes
+        self.save()
+
+    def calculate_half_sums(self):
+        # Calculate the sum of each quarter based on the period fields
+        h1 = self.period1 + self.period2 + self.period3 + self.period4 + self.period5 + self.period6
+        h2 = self.period7 + self.period8 + self.period9 + self.period10 + self.period11 + self.period12
+
+        # Update the instance with the calculated quarter sums
+        self.H1 = h1
+        self.H2 = h2
+
+        # Save the instance to persist the changes
+        self.save()
+
+
 class ChangeLog(models.Model):
     flag = models.BooleanField(default=False)
     department = models.CharField(max_length=255, null=True)
     budget_set = models.CharField(max_length=255, null=True)
 
+
 class BudgetLinesLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(Users, on_delete=models.CASCADE)
     action = models.CharField(max_length=50)
-    item_description =models.CharField(max_length=255, null=True)
+    item_description = models.CharField(max_length=255, null=True)
     total = models.DecimalField(decimal_places=2, max_digits=20, null=True)
     department = models.CharField(max_length=255, null=True)
     budget_set = models.CharField(max_length=255, null=True)
+
 
 # Create your models here.
 class BudgetLines(models.Model):
     account = models.ForeignKey(Accounts, on_delete=models.CASCADE)
     item_description = models.CharField(max_length=255, null=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
-    year =  models.CharField(max_length=4, default='2024')
-    currency = models.ForeignKey(Currency, on_delete=models.CASCADE,default=1)
+    year = models.CharField(max_length=4, default='2024')
+    currency = models.ForeignKey(Currency, on_delete=models.CASCADE, default=1)
     rate = models.DecimalField(decimal_places=2, max_digits=20, null=True)
     usage = models.DecimalField(decimal_places=2, max_digits=20, null=True)
     staff = models.IntegerField(null=True)
@@ -217,6 +245,7 @@ class BudgetStatus(models.Model):
     comment = models.CharField(max_length=255, null=True, blank=True)
     history = HistoricalRecords()
 
+
 class BudgetComments(models.Model):
     BUDGET_FIELDS = (
         ('rate', 'Rate'),
@@ -229,6 +258,8 @@ class BudgetComments(models.Model):
     created_by = models.ForeignKey(Users, on_delete=models.CASCADE)
     comment = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
 class Glafs(models.Model):
     acctid = models.CharField(db_column='ACCTID', primary_key=True, max_length=45,
                               db_collation='Latin1_General_CI_AS')  # Field name made lowercase.

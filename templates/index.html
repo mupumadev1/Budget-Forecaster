@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load filters %}
+{% load static %}
+{% block content %}
+    <div id="loader" class="loader is-hidden"></div>
+    <div id="app">
+        <section class="section is-title-bar">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="hero is-hero-bar">
+            <div class="hero-body">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item"><h1 class="title">
+                           Budget Summary
+                        </h1></div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <p class="mx-2"><span><input type="checkbox" class="mt-1 has-text-weight-bold"
+                                                         id="non-zero"> Non-zero budget numbers</span>
+                            </p>
+                                <div class="buttons is-right">
+                                    <button class="button has-text-black " id="toggleCards" style="border: 0px">
+                                        <span>Toggle</span><span class="icon"><i
+                                            class="mdi mdi-toggle-switch-outline mdi-24px"></i></span></button>
+                                    <button data-target="upload-modal"
+                                            class=" button  jb-modal has-text-black" style="border: 0px">
+                                        <span>Upload</span>
+                                        <span class="icon"><i class="mdi mdi-upload"></i></span>
+                                    </button>
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="section is-main-section ">
+            <div class="tile is-ancestor" id="dashboard-cards">
+                <div class="tile is-parent">
+                    <div class="card tile is-child">
+                        <div class="card-content">
+                            <div class="level is-mobile">
+                                <div class="level-item">
+                                    <div class="is-widget-label"><h1 class="subtitle is-spaced">
+                                        Total Budget
+                                    </h1>
+                                        <h6 class="title">
+                                            ZMW {{ total }}
+                                        </h6>
+                                    </div>
+                                </div>
+                                <div class="level-item has-widget-icon">
+                                    <div class="is-widget-icon"><span class="icon has-text-primary"><i
+                                            class="mdi mdi-cash-multiple mdi-48px"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tile is-parent">
+                    <div class="card tile is-child">
+                        <div class="card-content">
+                            <div class="level is-mobile">
+                                <div class="level-item">
+                                    <div class="is-widget-label"><h1 class="subtitle is-spaced">
+                                        Amount Depleted
+                                    </h1>
+                                        <h3 class="title">
+                                            ZMW 0
+                                        </h3>
+                                    </div>
+                                </div>
+                                <div class="level-item has-widget-icon">
+                                    <div class="is-widget-icon"><span class="icon has-text-info is-large"><i
+                                            class="mdi mdi-cart-outline mdi-48px"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tile is-parent">
+                    <div class="card tile is-child">
+                        <div class="card-content">
+                            <div class="level is-mobile">
+                                <div class="level-item">
+                                    <div class="is-widget-label"><h1 class="subtitle is-spaced">
+                                        Variance
+                                    </h1>
+                                        <h3 class="title">
+                                            0 %
+                                        </h3>
+                                    </div>
+                                </div>
+                                <div class="level-item has-widget-icon">
+                                    <div class="is-widget-icon"><span class="icon has-text-success is-large"><i
+                                            class="mdi mdi-chart-line mdi-48px"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          <div class="table-wrapper has-mobile-cards"
+                 style="overflow:auto;max-height:400px;">
+                <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                       role="grid">
+                    <thead>
+                    <tr>
+                        <th>Account Name</th>
+                        <th>Q1</th>
+                        <th>Q2</th>
+                        <th>H1</th>
+                        <th>Q3</th>
+                        <th>Q4</th>
+                        <th>H2</th>
+                        <th>YRT</th>
+
+
+                    </tr>
+                    </thead>
+                    <tbody class="budget-table-body"  role="rowgroup">
+
+                    {% for acc in data.dept_totals %}
+                        {% if acc %}
+                            <tr role="row" >
+                                <td data-label="Account name" id="accordion-button">{{ acc.acctdesc }}</td>
+                                <td>{{ acc.Q1 }}</td>
+                                <td>{{ acc.Q2 }}</td>
+                                <td data-label="Budget Total">{{ acc.H1 }}</td>
+                                <td data-label="Jan">{{ acc.Q3}}</td>
+                                <td data-label="Feb">{{ acc.Q4 }}
+                                </td>
+                                <td data-label="Mar">{{ acc.H2 }}
+                                </td>
+                                <td data-label="Apr">{{ acc.YRT }}
+                                </td>
+
+                            </tr>
+                            {% for dept in acc %}
+                             <tr role="row" class="is-hidden">
+                                <td data-label="Account name" id="accordion-button">{{ dept.acctdesc }}</td>
+                                <td>{{ dept.Q1 }}</td>
+                                <td>{{ dept.Q2 }}</td>
+                                <td data-label="Budget Total">{{ dept.H1 }}</td>
+                                <td data-label="Jan">{{ dept.Q3}}</td>
+                                <td data-label="Feb">{{ dept.Q4 }}
+                                </td>
+                                <td data-label="Mar">{{ dept.H2 }}
+                                </td>
+                                <td data-label="Apr">{{ dept.YRT }}
+                                </td>
+
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr role="row">
+                                Budget Already Uploaded
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+
+
+                    </tbody>
+                </table>
+            </div>
+
+
+        {% include 'partials/post-modal.html' %}
+
+        </section>
+    </div>
+{% endblock %}
+{% block extra-scripts %}
+{% endblock %}

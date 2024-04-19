@@ -7,6 +7,7 @@ from budgets import views
 app_name = "budgets"
 urlpatterns = [
                   path('', views.user_login, name='login'),
+                  path('home/', views.dashboard_index, name='dashboard-home'),
                   path('home/<str:budget_set>', views.index, name='home'),
                   path('update/assumptions/', views.budget_assumptions, name='assumptions'),
                   path('create', views.create_user, name='create'),
