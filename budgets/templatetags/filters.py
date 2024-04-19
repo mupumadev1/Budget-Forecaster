@@ -7,8 +7,30 @@ register = template.Library()
 
 
 @register.filter(name='calculate_sum_month')
-def calculate_sum(queryset,period):
+def calculate_sum(queryset, period):
     return sum(getattr(obj, f'period{period}') for obj in queryset)
+
+
+@register.filter(name='calculate_sum_quarter')
+def calculate_sum_quarter(obj, q):
+    if q == 1:
+        return sum(getattr(obj, f'period{i}', 0) for i in range(1, 4))
+    elif q == 2:
+        return sum(getattr(obj, f'period{i}', 0) for i in range(4, 7))
+    elif q == 3:
+        return sum(getattr(obj, f'period{i}', 0) for i in range(7, 10))
+    elif q == 4:
+        return sum(getattr(obj, f'period{i}', 0) for i in range(10, 13))
+    else:
+        raise (ValueError("Quarter number should be between 1 and 4"))
+
+
+@register.filter(name='calculate_sum_half')
+def calculate_sum_half(obj, q):
+    if q == 1:
+        return sum(getattr(obj, f'period{i}', 0) for i in range(1, 7))
+    elif q == 2:
+        return sum(getattr(obj, f'period{i}', 0) for i in range(7, 13))
 
 
 @register.filter(name='calculate_sum')

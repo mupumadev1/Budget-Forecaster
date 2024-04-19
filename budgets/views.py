@@ -34,6 +34,7 @@ def custom_500(request, exception):
 
 def dashboard_index(request):
     if request.user.is_authenticated:
+
         department_conditions = Q()
         for department_id in range(1, 13):  # Assuming departments IDs range from 1 to 12
             department_conditions |= Q(department_id=department_id)
@@ -41,155 +42,65 @@ def dashboard_index(request):
         budget_totals = BudgetTotals.objects.filter(
             Q(posted=False) & department_conditions
         ).order_by('-department_id', '-last_updated')
+        ceo_queryset = budget_totals.filter(department_id=1)
+        internal_audit_queryset = budget_totals.filter(department_id=2)
+        supply_chain_queryset = budget_totals.filter(department_id=3)
+        bds_queryset = budget_totals.filter(department_id=4)
+        public_relations_queryset = budget_totals.filter(department_id=5)
+        technical_queryset = budget_totals.filter(department_id=6)
+        information_systems_queryset = budget_totals.filter(department_id=7)
+        legal_risk_queryset = budget_totals.filter(department_id=8)
+        human_capital_queryset = budget_totals.filter(department_id=9)
+        sales_marketing_queryset = budget_totals.filter(department_id=10)
+        admin_queryset = budget_totals.filter(department_id=11)
+        finance_queryset = budget_totals.filter(department_id=12)
 
-        ceo = budget_totals.filter(department_id=1)
+        # Define a list to hold the querysets
+        querysets = [
+            ('CEO', 1, ceo_queryset),
+            ('Internal Audit', 2, internal_audit_queryset),
+            ('Supply Chain', 3, supply_chain_queryset),
+            ('BDS', 4, bds_queryset),
+            ('Public Relations', 5, public_relations_queryset),
+            ('Technical', 6, technical_queryset),
+            ('Information Systems', 7, information_systems_queryset),
+            ('Legal & Risk', 8, legal_risk_queryset),
+            ('Human Capital', 9, human_capital_queryset),
+            ('Sales & Marketing', 10, sales_marketing_queryset),
+            ('Administration', 11, admin_queryset),
+            ('Finance', 12, finance_queryset),
+        ]
+        dept_totals = []
 
-        internal_audit = budget_totals.filter(department_id=2)
+        # Iterate over each department queryset and calculate department totals
+        for dept_name, dept_id, queryset in querysets:
+            # Calculate department totals
+            total_qs = queryset.aggregate(
+                Q1=Sum('period1')+Sum('period2')+Sum('period3'),
+                Q2=Sum('period4')+Sum('period5')+Sum('period6'),
+                Q3=Sum('period7')+Sum('period8')+Sum('period9'),
+                Q4=Sum('period10')+Sum('period11')+Sum('period12'),
+                H1=Sum('period1')+Sum('period2')+Sum('period3')+Sum('period4')+Sum('period5')+Sum('period6'),
+                H2=Sum('period7')+Sum('period8')+Sum('period9')+Sum('period10')+Sum('period11')+Sum('period12'),
+                YRT=Sum('period1')+Sum('period2')+Sum('period3')+Sum('period4')+Sum('period5')+Sum('period6')+Sum('period7')+Sum('period8')+Sum('period9')+Sum('period10')+Sum('period11')+Sum('period12')
+            )
 
-        supply_chain = budget_totals.filter(department_id=3)
+            # Append department totals to dept_totals list
+            dept_totals.append({
+                'acctdesc': dept_name,
+                'Q1': total_qs['Q1'] or 0,
+                'Q2': total_qs['Q2'] or 0,
+                'Q3': total_qs['Q3'] or 0,
+                'Q4': total_qs['Q4'] or 0,
+                'H1': total_qs['H1'] or 0,
+                'H2': total_qs['H2'] or 0,
+                'YRT': total_qs['YRT'] or 0,
+                'dept': queryset  # Append the entire queryset for the department
+            })
 
-        bds = budget_totals.filter(department_id=4)
-
-        public_relations = budget_totals.filter(department_id=10)
-
-        technical = budget_totals.filter(department_id=6)
-
-        information_systems = budget_totals.filter(department_id=7)
-
-        legal_risk = budget_totals.filter(department_id=8)
-
-        human_capital = budget_totals.filter(department_id=9)
-
-        sales_marketing = budget_totals.filter(department_id=10)
-
-        admin = budget_totals.filter(department_id=11)
-
-        finance = budget_totals.filter(department_id=12)
-
-        data = {
-            'dept_totals': [
-                {
-                    'acctdesc': 'CEO',
-                    'Q1': ceo.Q1,
-                    'Q2': ceo.Q2,
-                    'Q3': ceo.Q3,
-                    'Q4': ceo.Q4,
-                    'H1': ceo.H1,
-                    'H2': ceo.H2,
-                    'dept': ceo
-                },
-                {
-                    'acctdesc': 'Internal Audit',
-                    'Q1': internal_audit.Q1,
-                    'Q2': internal_audit.Q2,
-                    'Q3': internal_audit.Q3,
-                    'Q4': internal_audit.Q4,
-                    'H1': internal_audit.H1,
-                    'H2': internal_audit.H2,
-                    'dept': internal_audit
-                },
-                {
-                    'acctdesc': 'Supply Chain',
-                    'Q1': supply_chain.Q1,
-                    'Q2': supply_chain.Q2,
-                    'Q3': supply_chain.Q3,
-                    'Q4': supply_chain.Q4,
-                    'H1': supply_chain.H1,
-                    'H2': supply_chain.H2,
-                    'dept': supply_chain
-                },
-                {
-                    'acctdesc': 'BDS',
-                    'Q1': bds.Q1,
-                    'Q2': bds.Q2,
-                    'Q3': bds.Q3,
-                    'Q4': bds.Q4,
-                    'H1': bds.H1,
-                    'H2': bds.H2,
-                    'dept': bds
-                },
-                {
-                    'acctdesc': 'Public Relations',
-                    'Q1': public_relations.Q1,
-                    'Q2': public_relations.Q2,
-                    'Q3': public_relations.Q3,
-                    'Q4': public_relations.Q4,
-                    'H1': public_relations.H1,
-                    'H2': public_relations.H2,
-                    'dept': public_relations
-                },
-                {
-                    'acctdesc': 'Technical',
-                    'Q1': technical.Q1,
-                    'Q2': technical.Q2,
-                    'Q3': technical.Q3,
-                    'Q4': technical.Q4,
-                    'H1': technical.H1,
-                    'H2': technical.H2,
-                    'dept': technical
-                },
-                {
-                    'acctdesc': 'Information Systems',
-                    'Q1': information_systems.Q1,
-                    'Q2': information_systems.Q2,
-                    'Q3': information_systems.Q3,
-                    'Q4': information_systems.Q4,
-                    'H1': information_systems.H1,
-                    'H2': information_systems.H2,
-                    'dept': information_systems
-                },
-                {
-                    'acctdesc': 'Legal & Risk',
-                    'Q1': legal_risk.Q1,
-                    'Q2': legal_risk.Q2,
-                    'Q3': legal_risk.Q3,
-                    'Q4':legal_risk.Q4,
-                    'H1': legal_risk.H1,
-                    'H2': legal_risk.H2,
-                    'dept': legal_risk
-                },
-                {
-                    'acctdesc': 'Human Capital',
-                    'Q1': human_capital.Q1,
-                    'Q2': human_capital.Q2,
-                    'Q3': human_capital.Q3,
-                    'Q4': human_capital.Q4,
-                    'H1':human_capital.H1,
-                    'H2': human_capital.H2,
-                    'dept': human_capital
-                },
-                {
-                    'acctdesc': 'Sales & Marketing',
-                    'Q1': sales_marketing.Q1,
-                    'Q2': sales_marketing.Q2,
-                    'Q3': sales_marketing.Q3,
-                    'Q4': sales_marketing.Q4,
-                    'H1': sales_marketing.H1,
-                    'H2': sales_marketing.H2,
-                    'dept': sales_marketing
-                },
-                {
-                    'acctdesc': 'Administration',
-                    'Q1': admin.Q1,
-                    'Q2': admin.Q2,
-                    'Q3': admin.Q3,
-                    'Q4': admin.Q4,
-                    'H1': admin.H1,
-                    'H2': admin.H2,
-                    'dept': admin
-                },
-                {
-                    'acctdesc': 'Finance',
-                    'Q1': finance.Q1,
-                    'Q2': finance.Q2,
-                    'Q3': finance.Q3,
-                    'Q4': finance.Q4,
-                    'H1': finance.H1,
-                    'H2': finance.H2,
-                    'dept': finance
-                },
-            ]
-        }
+        # Prepare the data dictionary for the template
+        data = {'dept_totals': dept_totals}
+        print(dept_totals[8]['dept'])
         return render(request, 'index.html', {'data':data})
     else:
         return redirect('budgets:login')
