@@ -2,22 +2,7 @@
 {% load filters %}
 {% load static %}
 {% block content %}
-    <div id="loader-background" class="background is-hidden">
-        <div class="spinner">
-            <div class="lds-roller">
-                <div></div>
-                <div></div>
-                <div></div>
-                <div></div>
-                <div></div>
-                <div></div>
-                <div></div>
-                <div></div>
-            </div>
-        
-            <div>Loading...</div>
-        </div>
-    </div>
+    <div id="loader" class="loader is-hidden"></div>
     <div id="app">
         <section class="section is-title-bar">
             <div class="level">
@@ -629,6 +614,105 @@
                                 </tbody>
                             
                             </table>
+                            <table id="budget-total-all" class="table is-hidden is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                                   role="grid">
+                                <thead >
+                                 <tr>
+                                    <th rowspan="1"></th>
+                                    <th rowspan="1" class="account-code is-hidden"></th>
+                                    <th colspan="4" class="has-text-centered">Q1</th>
+                                    <th colspan="4" class="has-text-centered">Q2</th>
+                                    <th colspan="4" class="has-text-centered">Q3</th>
+                                    <th colspan="4" class="has-text-centered">Q4</th>
+                                    <th colspan="4" class="has-text-centered">H1</th>
+                                    <th colspan="5" class="has-text-centered">H2</th>
+                                    <th colspan="4" class="has-text-centered">YRT</th>
+                                </tr>
+                                <tr>
+                                    <th>Account Name</th>
+                                    <th class="account-code is-hidden">Account Code</th>
+                                    <th id="q1-accordion" class=" has-text-right" style="font-family: inherit;font-size: 1em;">Q1(Budget)</th>
+                                    <th class="q1 is-hidden has-text-right">Q1(Actual)</th>
+                                    <th class="q1 is-hidden has-text-right">Q1(Pending)</th>
+                                    <th class="q1 is-hidden has-text-right">Q1(Available)</th>
+                                    <th id="q2-accordion" class="has-text-right" style="font-family: inherit;font-size: 1em;">Q2(Budget)</th>
+                                    <th class="q2 is-hidden has-text-right">Q2(Actual)</th>
+                                    <th class="q2 is-hidden has-text-right">Q2(Pending)</th>
+                                    <th class="q2 is-hidden has-text-right">Q2(Available)</th>
+                                   <th id="q3-accordion" class="has-text-right" style="font-family: inherit;font-size: 1em;">Q3(Budget)</th>
+                                    <th class="q3 is-hidden has-text-right">Q3(Actual)</th>
+                                    <th class="q3 is-hidden  has-text-right">Q3(Pending)</th>
+                                    <th class="q3 is-hidden has-text-right">Q3(Available)</th>
+                                    <th id="q4-accordion"  class="has-text-right" style="font-family: inherit;font-size: 1em;">Q4(Budget)</th>
+                                    <th class="q4 is-hidden has-text-right">Q4(Actual)</th>
+                                    <th class="q4 is-hidden has-text-right">Q4(Pending)</th>
+                                    <th class="q4 is-hidden has-text-right">Q4(Available)</th>
+                                    <th id="h1-accordion" class="has-text-right" style="font-family: inherit;font-size: 1em;">H1(Budget)</th>
+                                    <th class="h1 is-hidden has-text-right">H1(Actual)</th>
+                                    <th class="h1 is-hidden has-text-right">H1(Pending)</th>
+                                    <th class="h1 is-hidden has-text-right">H1(Available)</th>
+                                    <th id="h2-accordion" class="has-text-right" style="font-family: inherit;font-size: 1em;">H2(Budget)</th>
+                                    <th class="h2 is-hidden has-text-right">H2(Actual)</th>
+                                    <th class="h2 is-hidden has-text-right">H2(Actual)</th>
+                                    <th class="h2 is-hidden has-text-right">H2(Actual)</th>
+                                    <th class="h2 is-hidden has-text-right">H2(Actual)</th>
+                                    <th id="yrt-accordion" class="has-text-right" style="font-family: inherit;font-size: 1em;">YRT(Budget)</th>
+                                    <th class="yrt is-hidden has-text-right">YRT(Actual)</th>
+                                    <th class="yrt is-hidden has-text-right">YRT(Pending)</th>
+                                    <th class="yrt is-hidden has-text-right">YRT(Available)</th>
+                                </tr>
+                                </thead>
+                                <tbody class="budget-table-body"  role="rowgroup">
+                                {% for acc in data.dept_totals %}
+                                    {% if acc %}
+                                        <tr role="row" class="accordion-row" >
+                                            <td data-label="Account name" class="button card-header-icon {% if request.user.role == '002' %}accordion-button1-all{% endif %}" data-dept="{{ acc.id }}" style=" position: sticky;
+                left: 0;
+                top: 0;
+
+                background-color: white;"><b>{{ acc.acctdesc }}</b></td>
+                                        <td class="account-code is-hidden"></td>
+                                            <td class="has-text-right">{{ acc.Q1.total }}</td>
+                                            <td class="has-text-right is-hidden q1">{{ acc.Q1.total_actual }}</td>
+                                            <td class="has-text-right is-hidden q1">{{ acc.Q1.pending }}</td>
+                                            <td class="has-text-right is-hidden q1">{{ acc.Q1.available }}</td>
+                                            <td class="has-text-right">{{ acc.Q2.total }}</td>
+                                            <td class="has-text-right is-hidden q2">{{ acc.Q2.total_actual }}</td>
+                                            <td class="has-text-right is-hidden q2">{{ acc.Q2.pending }}</td>
+                                            <td class="has-text-right is-hidden q2">{{ acc.Q2.available }}</td>
+                                            <td class="has-text-right">{{ acc.Q3.total }}</td>
+                                            <td class="has-text-right is-hidden q3">{{ acc.Q3.total_actual }}</td>
+                                            <td class="has-text-right is-hidden q3">{{ acc.Q3.pending }}</td>
+                                            <td class="has-text-right is-hidden q3">{{ acc.Q3.available }}</td>
+                                            <td class="has-text-right">{{ acc.Q4.total }}</td>
+                                            <td class="has-text-right is-hidden q4">{{ acc.Q4.total_actual }}</td>
+                                            <td class="has-text-right is-hidden q4">{{ acc.Q4.pending }}</td>
+                                            <td class="has-text-right is-hidden q4">{{ acc.Q4.available }}</td>
+                                            <td class="has-text-right">{{ acc.H1.total }}</td>
+                                            <td class="has-text-right is-hidden h1">{{ acc.H1.total_actual }}</td>
+                                            <td class="has-text-right is-hidden h1">{{ acc.H1.pending }}</td>
+                                            <td class="has-text-right is-hidden h1">{{ acc.H1.available }}</td>
+                                            <td class="has-text-right">{{ acc.H2.total }}</td>
+                                            <td class="has-text-right is-hidden h2">{{ acc.H2.total_actual }}</td>
+                                            <td class="has-text-right is-hidden h2">{{ acc.H2.pending }}</td>
+                                            <td class="has-text-right is-hidden h2">{{ acc.H2.available }}</td>
+                                            <td class="has-text-right">{{ acc.YRT.total }}</td>
+                                            <td class="has-text-right is-hidden yrt">{{ acc.YRT.total_actual }}</td>
+                                            <td class="has-text-right is-hidden yrt">{{ acc.YRT.pending }}</td>
+                                            <td class="has-text-right is-hidden yrt">{{ acc.YRT.available }}</td>
+                                            
+                                        </tr>
+
+                                    {% else %}
+                                        <tr role="row">
+                                            No data to show
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+
+
+                                </tbody>
+                            </table>
 
                         </div>
                     </div>
@@ -642,11 +726,11 @@
     const searchInput = document.getElementById('dashboard-search')
     const select = document.getElementById('quarter_select');
     const budgetSetSelect = document.getElementById('bs_select');
-    let currentDate = new Date();// Calculate the current quarter
-    
+    let currentDate = new Date();
+    // Calculate the current quarter
     let currentMonth = currentDate.getMonth() + 1; // Adding 1 because getMonth() returns zero-based index
-    
-    let defaultPeriodValue = 'netperd'+currentMonth // Set the default value of 'quarter' to the current quarter
+    // Set the default value of 'quarter' to the current quarter
+    let defaultPeriodValue = 'netperd'+currentMonth
     let defaultBudgetSet = 'Budget 1'
     function addEventListenerToInputSearch() {
         const inputs = document.getElementById('dashboard-search')
@@ -700,10 +784,6 @@
                                     acctdescCell.textContent = acc.acctid.trim(); // Assuming acc.Q1 contains the Q1 value
                                     acctdescCell.style.fontSize = '0.9em';
                                         newRow.appendChild(acctdescCell);
-                                  
-                                        
-                                       
-                                          
                                         // Append the new row to the table body
                                 currentTableBody.appendChild(newRow);
                             })
@@ -743,10 +823,6 @@
                                     acctdescCell.textContent = acc.acctid.trim(); // Assuming acc.Q1 contains the Q1 value
                                     acctdescCell.style.fontSize = '0.9em';
                                         newRow.appendChild(acctdescCell);
-                                  
-                                        
-                                       
-                                          
                                         // Append the new row to the table body
                                 currentTableBody.appendChild(newRow);
                             })
@@ -762,7 +838,7 @@
         }
     }
     addEventListenerToInputSearch() 
-    function addActualEventListener() {
+function addActualEventListener() {
     try {
         let selectedPeriod = variables['period'] || defaultPeriodValue;
         const pendingBtn = document.querySelectorAll(`[class*="has-text-right actualBtn"]`);
@@ -781,7 +857,7 @@
         console.error('Error in addPendingEventListener:', error);
     }
 }
-    function addPendingEventListener() {
+function addPendingEventListener() {
     try {
         let selectedPeriod = variables['period'] || defaultPeriodValue;
         const pendingBtn = document.querySelectorAll(`[class*="has-text-right pendingBtn"]`);
@@ -804,19 +880,18 @@
     addPendingEventListener()
     addActualEventListener()
     // Add an event listener to the select element
-    const loader = document.getElementById('loader-background')
     select.addEventListener('change', function () {
         // Get the selected value
-         loader.classList.remove('is-hidden');
+
         const selectedValue = select.value;
         let url =``
         variables['period']=selectedValue
         let sBudgetSet =variables['budget_set']||defaultBudgetSet
         if (selectedValue.includes('netperd')){
-             url = `/home?period=${selectedValue}&budget_set=${sBudgetSet}`
+             url = `/home/department?period=${selectedValue}&budget_set=${sBudgetSet}`
         }
         else{
-             url = `/home?quarter=${selectedValue}&budget_set=${sBudgetSet}`
+             url = `/home/department?quarter=${selectedValue}&budget_set=${sBudgetSet}`
         }
 
         // Send a fetch request to the endpoint /home with the selected value as a query parameter
@@ -855,18 +930,18 @@
                 if (oldTable) {
                     oldTable.replaceWith(newTable);
                     addEventListenersToTable()
+                    
                     addPendingEventListener()
                     addActualEventListener()
                 } else {
                     document.getElementById('budget-total-all').replaceWith(newTable);
                     addEventListenersToTable()
+                    
                     addPendingEventListener()
                     addActualEventListener()
 
                 }
                 oldHeader.replaceWith(newHeader)
-                loader.classList.add('is-hidden');
-                
             }
                 
             
@@ -884,10 +959,10 @@
         let cPeriod =variables['period']||defaultPeriodValue
         let sBudgetSet =variables['budget_set']||defaultBudgetSet
         if (cPeriod.includes('netperd')){
-             url = `/home?period=${cPeriod}&budget_set=${sBudgetSet}`
+             url = `/home/department?period=${cPeriod}&budget_set=${sBudgetSet}`
         }
         else{
-             url = `/home?quarter=${cPeriod}&budget_set=${sBudgetSet}`
+             url = `/home/department?quarter=${cPeriod}&budget_set=${sBudgetSet}`
         }
         // Send a fetch request to the endpoint /home with the selected value as a query parameter
         fetch(url)
@@ -920,11 +995,13 @@
                 if (oldTable) {
                     oldTable.replaceWith(newTable);
                     addEventListenersToTable()
+                    
                     addPendingEventListener()
                     addActualEventListener()
                 } else {
                     document.getElementById('budget-total-all').replaceWith(newTable);
                     addEventListenersToTable()
+                    
                     addPendingEventListener()
                     addActualEventListener()
 
@@ -1058,6 +1135,7 @@
                                             janaCell.style.fontSize = '0.9em',
                                             janaCell.classList.add("has-text-right");
                                             newRow.appendChild(janaCell);
+
 
                                             // Append the new row to the table body
                                             var parentRow = this.parentElement;
@@ -1315,7 +1393,7 @@
     
         addEventListenersToTable()
 
-       
+        
     
     </script>
 {% endblock %}

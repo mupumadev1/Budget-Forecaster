@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load filters %}
+{% load static %}
+{% block content %}
+    <div id="loader" class="loader is-hidden"></div>
+    <div id="app">
+        <section class="section is-title-bar">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="hero is-hero-bar">
+            <div class="hero-body">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <nav class="breadcrumb" aria-label="breadcrumbs">
+                              <ul>
+                                  <li><a {% if request.user.role == '001' %}href="{% url 'budgets:dashboard-home-department' %}{% elif request.user.role == '002' %}href="{% url 'budgets:dashboard-home' %}"{% endif %}"><h1>Dashboard</h1></a>
+                                </li>
+                                <li><a href="{% url 'budgets:dashboard-search-results' accountId %}"><h1 >
+                                  {{ account }} Budget Summary
+                                </h1></a>
+                                </li>
+                                  
+                                
+                              </ul>
+                            </nav>
+                            </div>
+                    </div>
+                    <div class="level-right">
+                        
+                        <div class="level-item">
+                              
+                          
+                        </div>
+                </div>
+            </div>
+            </div>
+        </section>
+        <section class="section is-main-section mt-6">
+        
+            <div class="card has-table has-mobile-sort-spaced">
+                   
+                     <div class="level " style="margin-top:0.5rem;margin-bottom:1rem; font-weight:bold;">
+                                        <div class="level-left">
+                                        </div>
+                                        <div class="level-right">
+
+                                        </div>
+                            
+                     </div>
+                        <div class="table-wrapper has-mobile-cards p-2 "
+                             style="overflow:auto;max-height:500px;">
+                            <table id="budget-total" class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                                   role="grid">
+                                <thead >
+                                <tr class="p-1">
+                                    <th rowspan="1" class="card-header-icon"></th>
+                                    <th rowspan="1" class="account-code is-hidden has-text-right"></th>
+                                    <th colspan="4" class="has-text-centered">{{ month }}</th>
+                                    <th colspan="4" class="has-text-centered">YTD</th>
+                                </tr>
+                                <tr>
+
+                                    <th class="card-header-icon">Month</th>
+                                    <th class="has-text-right">Budget</th>
+                                     <th class="has-text-right">Actual</th>
+                                    <th class="has-text-right">Pending</th>
+                                    <th class="has-text-right">Available</th>
+                                    <th class="has-text-right">Budget</th>
+                                      <th class="has-text-right">Actual</th>
+                                      <th class="has-text-right">Pending</th>
+                                      <th class="has-text-right">Available</th>
+
+                                </tr>
+                                </thead>
+                                <tbody class="budget-table-body"  role="rowgroup">
+                                {% for acc in data.dept_totals %}
+                                    {% if acc %}
+                                        <tr role="row" class="accordion-row" >
+                                            <td data-label="Month>" style=" position: sticky;background-color: white;" class="button card-header-icon"> <b>{{ acc.month }}</b></td>
+                                            <td class="has-text-right">{{ acc.total }}</td>
+                                            <td class="has-text-right actualBtn" data-account="{{ acc.acctid }}" data-dept="{{ dept }}" data-period="netperd{{ acc.month_id }}">{{ acc.total_actual}}</td>
+                                            <td class="has-text-right pendingBtn" data-account="{{ acc.acctid }}" data-dept="{{ dept }}" data-period="netperd{{ acc.month_id }}">{{ acc.pending }}</td>
+                                            <td class="has-text-right">{{ acc.available }}</td>
+                                            <td class="has-text-right" data-label="Jan">{{ acc.year_total}}</td>
+                                            <td class="has-text-right actualBtn" data-account="{{ acc.acctid }}" data-dept="{{ dept }}" data-period="netperd{{ acc.month_id }}">{{ acc.year_total_actual}}</td>
+                                            <td class="has-text-right pendingBtn" data-account="{{ acc.acctid }}" data-dept="{{ dept }}" data-period="netperd{{ acc.month_id }}">{{ acc.pending_year_total }}</td>
+                                            <td class="has-text-right" data-label="Apr">{{ acc.available_year_total }}</td>
+                                        </tr>
+
+                                    {% else %}
+                                        <tr role="row">
+                                            No budget to show.
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+
+
+                                </tbody>
+                            
+                            </table>
+
+                        </div>
+                    </div>
+        </section>
+    </div>
+    <script>
+    function addActualEventListener() {
+    try {
+        const pendingBtn = document.querySelectorAll(`[class*="has-text-right actualBtn"]`);
+        
+        pendingBtn.forEach(btn => {
+            let dept = btn.dataset.dept;
+            let selectedPeriod = btn.dataset.period
+            let selectedAccount = btn.dataset.account
+            let url = '';
+            
+            if (selectedPeriod.includes('netperd')) {
+                url = `/actual/${dept}?period=${selectedPeriod}&account=${selectedAccount}`;
+            } else {
+                url = `/actual/${dept}?quarter=${selectedPeriod}&account=${selectedAccount}`;
+            }
+            
+            btn.addEventListener('click', () => {
+                window.location.href = url;
+            });
+        });
+    } catch (error) {
+        console.error('Error in addPendingEventListener:', error);
+    }
+}
+    function addPendingEventListener() {
+    try {
+        const pendingBtn = document.querySelectorAll(`[class*="has-text-right pendingBtn"]`);
+        
+        pendingBtn.forEach(btn => {
+            let dept = btn.dataset.dept;
+            let selectedPeriod = btn.dataset.period
+            let selectedAccount = btn.dataset.account
+            let url = '';
+            
+            if (selectedPeriod.includes('netperd')) {
+                url = `/pending/${dept}?period=${selectedPeriod}&account=${selectedAccount}`;
+            } else {
+                url = `/pending/${dept}?quarter=${selectedPeriod}&account=${selectedAccount}`;
+            }
+            
+            btn.addEventListener('click', () => {
+                window.location.href = url;
+            });
+        });
+    } catch (error) {
+        console.error('Error in addPendingEventListener:', error);
+    }
+}
+
+    addPendingEventListener()
+    addActualEventListener()
+    </script>
+{% endblock %}

@@ -22,8 +22,9 @@
     <orderEntry type="library" name="chart.js" level="application" />
     <orderEntry type="library" name="@docsearch" level="application" />
     <orderEntry type="library" name="bootstrap" level="application" />
-    <orderEntry type="library" name="materialdesignicons" level="application" />
     <orderEntry type="library" name="Chart.js" level="application" />
+    <orderEntry type="library" name="jquery" level="application" />
+    <orderEntry type="library" name="materialdesignicons" level="application" />
     <orderEntry type="library" name="jquery" level="application" />
     <orderEntry type="library" name="materialdesignicons" level="application" />
   </component>

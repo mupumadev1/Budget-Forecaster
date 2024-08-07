@@ -1,0 +1,78 @@
+{% load filters %}
+<div id="index-account-search-modal" class="modal">
+    <div class="modal-background jb-modal-close"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Search Accounts</p>
+            <button class="delete jb-modal-close" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label">Find By:</label>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <div class="select is-fullwidth">
+                            <select id="index-search-criteria">
+                                <option disabled selected style="display: none"></option>
+                                <option id="name" value="account_name" class="has-text-right"> Account Name</option>
+                                <option id="acc-id" value="account_id"  class="has-text-right"> Account ID</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label">Filter :</label>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <div class="control">
+                        
+                            <input  class="input index-account-input-search" id="dashboard-search" {% if user.role == '001' %}data-dept="{{ request.user.department_id }}" {% endif %} type="text" disabled>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-wrapper has-mobile-cards"
+                 style="overflow:auto;max-height:400px;" id="index-account-search-table">
+                <table id="budget-total" class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                                   role="grid">
+                                <thead >
+                                <tr >
+
+                                    <th >Account Name</th>
+                                    <th >Account Code</th>
+                                    
+
+                                </tr>
+                                </thead>
+                                <tbody id="index-search-table-body"  role="rowgroup">
+                                     
+                          <tr role="row" class="accordion-row" >
+                                            <td data-label="Account name" style=" position: sticky;background-color: white;" class="button card-header-icon {% if request.user.role == '002' %}accordion-button1{% endif %}" data-dept="{{ acc.id }}"><b></b></td>
+                                            <td class="account-code " ></td>
+                                           
+                                        </tr>
+
+
+                                </tbody>
+                            </table>
+
+            </div>
+
+          
+
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button jb-modal-close">Cancel</button>
+        </footer>
+    </div>
+    <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
+</div>
+<script>
+   
+</script>

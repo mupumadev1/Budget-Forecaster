@@ -17,7 +17,7 @@
                 <div class="level">
                     <div class="level-left">
                         <div class="level-item"><h1 class="title">
-                            OPEX Dashboard
+                            OPEX Budget {% if status == True %} Adjustments {% else %} Input {% endif %}
                         </h1></div>
                     </div>
                     <div class="level-right">
@@ -25,15 +25,33 @@
                             <p class="mx-2"><span><input type="checkbox" class="mt-1 has-text-weight-bold"
                                                          id="non-zero"> Non-zero budget numbers</span>
                             </p>
+                            
                             <div class="buttons is-right">
-                                <button class="button has-text-black " id="toggleCards" style="border: 0px">
-                                    <span>Toggle</span><span class="icon"><i
-                                        class="mdi mdi-toggle-switch-outline mdi-24px"></i></span></button>
+                               
                                 <button data-target="upload-modal"
-                                        class=" button  jb-modal has-text-black" style="border: 0px">
-                                    <span>Upload</span>
+                                        class=" button is-small jb-modal has-text-black" style="border: 0px">
+                                    {% if status == True %}  <span>Save Changes</span>  {% else %}<span>Upload</span>{% endif %}
                                     <span class="icon"><i class="mdi mdi-upload"></i></span>
                                 </button>
+                                <!--{% if request.user.role == '002' %}
+                                    <select class="select my-2 " style="border:1px" name="budget_set"
+                                            onchange="navigateToBudget(this.value)">
+                            
+                                        <option value="1" {% if budget_set == 'Budget 1' %} selected {% endif %}>Budget Set
+                                            1
+                                        </option>
+                                        <option value="2" {% if budget_set == 'Budget 2' %} selected {% endif %}>Budget Set
+                                            2
+                                        </option>
+                                        <option value="3" {% if budget_set == 'Budget 3' %} selected {% endif %}>Budget Set 3
+                                        </option>
+                            
+                                    </select>
+                                {% else %}
+                                     <button class="button is-light-passive mt-3 ml-1 is-outlined is-small">
+                                         <span class="has-text-weight-bold">{{ activebs }}</span>
+                                     </button>
+                                {% endif %}-->
                             </div>
                         </div>
                     </div>
@@ -41,74 +59,6 @@
             </div>
         </section>
         <section class="section is-main-section ">
-            <div class="tile is-ancestor" id="dashboard-cards">
-                <div class="tile is-parent">
-                    <div class="card tile is-child">
-                        <div class="card-content">
-                            <div class="level is-mobile">
-                                <div class="level-item">
-                                    <div class="is-widget-label"><h1 class="subtitle is-spaced">
-                                        Total Budget
-                                    </h1>
-                                        <h6 class="title">
-                                            ZMW {{ total }}
-                                        </h6>
-                                    </div>
-                                </div>
-                                <div class="level-item has-widget-icon">
-                                    <div class="is-widget-icon"><span class="icon has-text-primary"><i
-                                            class="mdi mdi-cash-multiple mdi-48px"></i></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="tile is-parent">
-                    <div class="card tile is-child">
-                        <div class="card-content">
-                            <div class="level is-mobile">
-                                <div class="level-item">
-                                    <div class="is-widget-label"><h1 class="subtitle is-spaced">
-                                        Amount Depleted
-                                    </h1>
-                                        <h3 class="title">
-                                            ZMW 0
-                                        </h3>
-                                    </div>
-                                </div>
-                                <div class="level-item has-widget-icon">
-                                    <div class="is-widget-icon"><span class="icon has-text-info is-large"><i
-                                            class="mdi mdi-cart-outline mdi-48px"></i></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="tile is-parent">
-                    <div class="card tile is-child">
-                        <div class="card-content">
-                            <div class="level is-mobile">
-                                <div class="level-item">
-                                    <div class="is-widget-label"><h1 class="subtitle is-spaced">
-                                        Variance
-                                    </h1>
-                                        <h3 class="title">
-                                            0 %
-                                        </h3>
-                                    </div>
-                                </div>
-                                <div class="level-item has-widget-icon">
-                                    <div class="is-widget-icon"><span class="icon has-text-success is-large"><i
-                                            class="mdi mdi-chart-line mdi-48px"></i></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
             {% include 'department-card-content.html' with dept=finance dept_name='Finance' dept_id=12 %}
             {% include 'department-card-content.html' with dept=internal_audit dept_name='Internal Audit' dept_id=2%}
             {% include 'department-card-content.html' with dept=supply_chain dept_name='Supply Chain' dept_id=3 %}
@@ -121,6 +71,7 @@
             {% include 'department-card-content.html' with dept=sales_marketing dept_name='Sales & Marketing' dept_id=10%}
             {% include 'department-card-content.html' with dept=admin dept_name='Administration' dept_id=11%}
             {% include 'department-card-content.html' with dept=ceo dept_name='CEO' dept_id=1%}
+            {% include 'department-card-content.html' with dept=staff_remuneration dept_name='Staff & Remunerations' dept_id=14%}
         </section>
         {% include 'partials/post-modal.html' %}
 

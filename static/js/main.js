@@ -148,6 +148,10 @@ document.addEventListener("DOMContentLoaded", function () {
             parentButton.addEventListener("click", function () {
                 var parentAccordionContent = this.closest(".card").querySelector(".parent-accordion-content");
                 parentAccordionContent.classList.toggle('is-hidden')
+                let deptId = parentAccordionContent.dataset.department
+                console.log(deptId)
+                addEventListenerToAnchorTag(deptId);
+
             })
         })
     }
@@ -496,6 +500,7 @@ loadNotifications()
 // Add event listener to entryType select element
     if (entryType) {
         entryType.addEventListener('change', () => {
+            const currentUrl = window.location.href;
             submitBtn.disabled = false
             document.getElementById('add-line').classList.remove('is-hidden')
             if (entryType.value === 'formula') {
@@ -503,17 +508,21 @@ loadNotifications()
                 document.getElementById('form-settings-modal').classList.add('is-active');
                 manualDiv.classList.add('is-hidden')
                 formulaDiv.classList.remove('is-hidden');
+                if (currentUrl.includes('update')) {
                 $(".manual-input").each(function (index, el) {
                     $(el).val('0');
                 });
+                }
             } else if (entryType.value === 'manual') {
                 formulaDiv.classList.add('is-hidden');
                 manualDiv.classList.remove('is-hidden')
                 document.getElementById('form-settings-modal').classList.remove('is-active');
                 assumptionSelect.disabled = true;
+                if (currentUrl.includes('update')) {
                 $(".formula-input").each(function (index, el) {
                     $(el).val('0');
                 });
+                }
             } else {
                 submitBtn.disabled = true
             }
@@ -521,17 +530,27 @@ loadNotifications()
     }
     if (assumptionSelect) {
         assumptionSelect.addEventListener('change', () => {
-
-            rate.value = assumptionSelect.selectedOptions[0].getAttribute('data-value');
-            rate.readOnly = true
-
+           const selectedIndex = assumptionSelect.selectedIndex;
+            if (selectedIndex !== -1) {
+                const selectedOption = assumptionSelect.options[selectedIndex];
+                const selectedRate = selectedOption.getAttribute('data-value');
+                console.log(selectedRate)
+                if (selectedRate) {
+                    rate.value = selectedRate;
+                    rate.readOnly = true;
+                } else {
+                    // Handle the case where data-rate is not set
+                    console.error('data-rate attribute is not set for the selected option.');
+                }
+        }
         })
     }
 // Add event listeners to buttons with class 'is-info'
     if (submitBtn) {
         submitBtn.addEventListener('click', function (e) {
             e.preventDefault(); // Prevent default form submission
-
+            let rawObj = submitBtn.dataset.objectidentification.replace(',','')
+            let objctId = parseInt(rawObj)
             let isValid = true;
             $('.manual-input, .formula-input').each(function () {
                 if (!handleError($(this))) {
@@ -551,6 +570,8 @@ loadNotifications()
                         formData[$(el).attr('name')] = parseFloat($(el).val()) || 0;
 
                     })
+                    const assumption = document.getElementById('assumptions-select').selectedOptions[0].textContent;
+
                     const rate = selectedCurrencyOption.dataset.rate;
                     let total
                     const nonZeroVariables = [formData['rate'], formData['usage'], formData['factor'], formData['staff']].filter(value => value !== 0);
@@ -563,7 +584,7 @@ loadNotifications()
                     if (evenlyCB.checked) {
                         let dividend = total / 12
                         for (let i = 1; i <= 12; i++) {
-                            formData['period' + i] = dividend
+                            formData['netperd' + i] = dividend
                         }
                     } else if (monthsCB.checked) {
                         let dividend = total / mths.length;
@@ -575,14 +596,14 @@ loadNotifications()
 
                         // Set values for months in mths array
                         for (let i = 0; i < mths.length; i++) {
-                            formData['period' + monthToNumber[mths[i].toLowerCase()]] = dividend;
+                            formData['netperd' + monthToNumber[mths[i].toLowerCase()]] = dividend;
                         }
 
                         // Set values to 0 for months not in mths array
                         const allMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
                         allMonths.forEach(month => {
                             if (!mths.includes(month)) {
-                                formData['period' + monthToNumber[month]] = 0;
+                                formData['netperd' + monthToNumber[month]] = 0;
                             }
                         });
 
@@ -595,29 +616,37 @@ loadNotifications()
 
                         // Set values for months in mths array
                         for (let i = 0; i < quarter.length; i++) {
-                            formData['period' + quarterToNumber[quarter[i]]] = dividend;
+                            formData['netperd' + quarterToNumber[quarter[i]]] = dividend;
                         }
 
                         // Corrected loop to set values for all months
                         for (let i = 1; i <= 12; i++) {
-                            if (!formData.hasOwnProperty('period' + i)) {
-                                formData['period' + i] = 0;
+                            if (!formData.hasOwnProperty('netperd' + i)) {
+                                formData['netperd' + i] = 0;
                             }
                         }
                     }
                     formData['exchange_rate'] = rate
                     formData['entryType'] = 'function'
+                    formData['assumption'] = assumption
+                    console.log(formData)
                     $.ajax({
                         url: ``,
                         type: 'POST',
                         data: JSON.stringify(formData),
                         headers: {'X-CSRFToken': getCSRFToken()}, // Include CSRF token
                         success: function (resp) {
-                            window.location.href = ``
+                            if (window.location.href.includes('update')) {
+                                window.location.href = ``
+                            } else {
+                                window.location.href = ``
+                            }
                         },
-                        error: function (resp) {
-
-                            alert('An error occurred while submitting.');
+                        error: function (xhr, status, error) {
+                            console.log("Error status: " + status);
+                            console.log("Error message: " + error);
+                            console.log(xhr.responseText); // Log the full response for detailed error information
+                            // Handle the error or display a specific message to the user
                         }
                     });
                 } else if (selectedOption === 'manual') {
@@ -633,11 +662,12 @@ loadNotifications()
                     formData['entryType'] = 'manual'
                     let total = 0
                     for (let i = 1; i <= 12; i++) {
-                        if (formData['period' + i] !== '') {
-                            total += parseFloat(formData['period' + i])
+                        if (formData['netperd' + i] !== '') {
+                            total += parseFloat(formData['netperd' + i])
                         }
                     }
                     formData['total'] = total
+                    console.log(formData)
                     $.ajax({
                         url: ``,
                         type: 'POST',
@@ -645,7 +675,12 @@ loadNotifications()
                         data: JSON.stringify(formData),
                         headers: {'X-CSRFToken': getCSRFToken()}, // Include CSRF token
                         success: function (resp) {
-                            window.location.href = ``
+
+                            if (window.location.href.includes('update')) {
+                                window.location.href = ``
+                            } else {
+                                window.location.href = `/update/${objctId}`
+                            }
                         },
                         error: function (xhr, status, error) {
                             console.log("Error status: " + status);
@@ -851,13 +886,14 @@ loadNotifications()
         addCurrencyRow();
     });
     const expensesBtn = document.getElementById('expenseBtn')
-        if (expensesBtn) {
+    if (expensesBtn) {
 
-            expensesBtn.addEventListener('click', ev => {
-                ev.preventDefault()
-                document.getElementById('expenses').classList.toggle('is-hidden')
-            })
-        }
+        expensesBtn.addEventListener('click', ev => {
+            ev.preventDefault()
+            document.getElementById('expenses').classList.toggle('is-hidden')
+        })
+    }
+
     function handleClick(deptId) {
         return function (event) {
             event.preventDefault();
@@ -874,7 +910,7 @@ loadNotifications()
     function addEventListenerToInputSearch(deptId) {
         console.log(deptId)
         const inputs = document.querySelectorAll(`[class*="input account-input-search-${deptId}"]`)
-       console.log(inputs)
+        console.log(inputs)
         if (inputs.length > 0) {
             inputs.forEach(input => {
                 const fieldBody = input.closest('.modal');
@@ -918,27 +954,6 @@ loadNotifications()
                                 accountNameCell.setAttribute('data-label', 'Account name');
                                 accountNameCell.textContent = acc.account__acctdesc;
                                 row.appendChild(accountNameCell);
-
-                                const currencyCell = document.createElement('td');
-                                currencyCell.textContent = acc.currency__currency;
-                                row.appendChild(currencyCell);
-
-                                const yearCell = document.createElement('td');
-                                yearCell.textContent = acc.year;
-                                row.appendChild(yearCell);
-
-                                const budgetTotalCell = document.createElement('td');
-                                budgetTotalCell.setAttribute('data-label', 'Total');
-                                budgetTotalCell.textContent = acc.total;
-                                row.appendChild(budgetTotalCell);
-
-                                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                months.forEach((month, index) => {
-                                    const monthCell = document.createElement('td');
-                                    monthCell.setAttribute('data-label', month);
-                                    monthCell.textContent = acc[`period${index + 1}`];
-                                    row.appendChild(monthCell);
-                                });
 
                                 const actionsCell = document.createElement('td');
                                 actionsCell.className = 'is-actions-cell';
@@ -985,8 +1000,8 @@ loadNotifications()
     }
 
     function addEventListenerToAnchorTag(deptId) {
-
-        const paginationLinks = document.querySelectorAll(`.custom-pagination-${deptId} a`)
+        const paginationLinks = document.querySelectorAll(`[class*="custom-pagination-${deptId}"]`)
+        console.log(paginationLinks)
         if (paginationLinks.length > 0) {
             paginationLinks.forEach(link => {
                 link.addEventListener('click', handleClick(deptId)); // Add the handleClick function as the event listener
@@ -1008,7 +1023,7 @@ loadNotifications()
     }
 
 // Add the event listener to the first pagination link for each department
-    const deptIds = ['CEO', 'Internal Audit', 'Supply Chain', 'BDS', 'Public Relations', 'Technical','Information Systems', 'Legal & Risk', 'Human Capital', 'Sales & Marketing', 'Administration', 'Finance', 'Assets', 'Equity', 'Liabilities', 'Income', 'Clearing'];
+    const deptIds = ['CEO', 'Internal Audit', 'Supply Chain', 'BDS', 'Public Relations', 'Technical', 'Information Systems', 'Legal & Risk', 'Human Capital', 'Sales & Marketing', 'Administration', 'Finance', 'Staff & Remunerations','Assets'];
     deptIds.forEach(deptId => {
         addEventListenerToAnchorTag(deptId);
         addEventListenerToInputSearch(deptId)

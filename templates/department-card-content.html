@@ -2,38 +2,20 @@
 {% load static %}
 <div class="card has-table has-mobile-sort-spaced">
     <header class="card-header">
-        <p class="card-header-title">
+        <p class="card-header-title" >
             <span class="icon"><i class="mdi mdi-account-multiple"></i></span>
             {{ dept_name }} Accounts
         </p>
 
-        <a class="jb-modal mr-1 mt-2" data-target="account-search-modal-{{ dept_name }}"><span
+        <a class="jb-modal mr-1 mt-3" data-target="account-search-modal-{{ dept_name }}"><span
                 class="mdi mdi-search-web mdi-24px has-text-black"></span></a>
-{% if request.user.role == '002' %}
-        <select class="select my-2" style="border:0" name="budget_set"
-                onchange="navigateToBudget(this.value)">
 
-            <option value="1" {% if budget_set == 'Budget 1' %} selected {% endif %}>Budget Set
-                1
-            </option>
-            <option value="2" {% if budget_set == 'Budget 2' %} selected {% endif %}>Budget Set
-                2
-            </option>
-            <option value="3" {% if budget_set == 'Budget 3' %} selected {% endif %}>Budget Set 3
-            </option>
-
-        </select>
-    {% else %}
-         <button class="button is-light-passive m-1 is-outlined is-small">
-             <span class="has-text-weight-bold">{{ activebs }}</span>
-         </button>
-    {% endif %}
         <a class="card-header-icon accordion-button">
             <span class="icon"><i class="mdi mdi-plus-thick mdi-18px"></i></span>
         </a>
 
     </header>
-    <div class="card-content parent-accordion-content is-hidden ">
+    <div class="card-content parent-accordion-content is-hidden" data-department="{{ dept_name }}">
         {% if dept %}
             <div class="level " style="margin-top:1.5rem; font-weight:bold;">
                 <div class="level-left">
@@ -129,28 +111,28 @@
                                 <td>{{ acc.currency.currency }}</td>
                                 <td>{{ acc.year }}</td>
                                 <td data-label="Budget Total">{{ acc.total }}</td>
-                                <td data-label="Jan">{{ acc.period1 }}</td>
-                                <td data-label="Feb">{{ acc.period2 }}
+                                <td data-label="Jan">{{ acc.netperd1 }}</td>
+                                <td data-label="Feb">{{ acc.netperd2 }}
                                 </td>
-                                <td data-label="Mar">{{ acc.period3 }}
+                                <td data-label="Mar">{{ acc.netperd3 }}
                                 </td>
-                                <td data-label="Apr">{{ acc.period4 }}
+                                <td data-label="Apr">{{ acc.netperd4 }}
                                 </td>
-                                <td data-label="May">{{ acc.period5 }}
+                                <td data-label="May">{{ acc.netperd5 }}
                                 </td>
-                                <td data-label="Jun">{{ acc.period6 }}
+                                <td data-label="Jun">{{ acc.netperd6 }}
                                 </td>
-                                <td data-label="Jul">{{ acc.period7 }}
+                                <td data-label="Jul">{{ acc.netperd7 }}
                                 </td>
-                                <td data-label="Aug">{{ acc.period8 }}
+                                <td data-label="Aug">{{ acc.netperd8 }}
                                 </td>
-                                <td data-label="Sep">{{ acc.period9 }}
+                                <td data-label="Sep">{{ acc.netperd9 }}
                                 </td>
-                                <td data-label="Oct">{{ acc.period10 }}
+                                <td data-label="Oct">{{ acc.netperd10 }}
                                 </td>
-                                <td data-label="Nov">{{ acc.period11 }}
+                                <td data-label="Nov">{{ acc.netperd11 }}
                                 </td>
-                                <td data-label="Dec">{{ acc.period12 }}
+                                <td data-label="Dec">{{ acc.netperd12 }}
                                 </td>
                                 <td class="is-actions-cell">
                                     <div class="buttons is-right">
@@ -160,10 +142,9 @@
                                                                 <span class="icon"><i
                                                                         class="mdi mdi-file-edit"></i></span>
                                         </a>
-                                        <a {% if dept|budget_active_filter != False %}
-                                            href="{% url 'budgets:clear-budget' acc.id %}" {% else %} {% endif %}
-                                            class="button is-small is-danger-passive "
-                                            data-target="sample-modal"
+                                        <a 
+                                            class="button is-small is-danger-passive jb-modal"
+                                            data-target="delete-modal"
                                             type="button">
                                                                 <span class="icon"><i
                                                                         class="mdi mdi-trash-can"></i></span>
@@ -176,6 +157,7 @@
                                 Budget Already Uploaded
                             </tr>
                         {% endif %}
+                        {% include 'partials/delete-modal.html' %}
                     {% endfor %}
 
 

@@ -1,26 +1,45 @@
+from decimal import Decimal
+
 from django import template
 from django.shortcuts import get_object_or_404
 
-from budgets.models import BudgetStatus, BudgetLines, BudgetTotals
+from budgets.models import BudgetStatus, BudgetLines, BudgetTotals, BudgetVariations
 
 register = template.Library()
 
 
 @register.filter(name='calculate_sum_month')
-def calculate_sum(queryset, period):
-    return sum(getattr(obj, f'period{period}') for obj in queryset)
+def calculate_sum(queryset, netperd):
+    return sum(getattr(obj, f'netperd{netperd}') for obj in queryset)
+
+
+@register.filter(name='calculate_sums')
+def calculate_sum(dept_totals, netperd):
+    # Initialize sum
+    total = 0
+
+    # Iterate over values (which are lists of dictionaries) in dept_totals
+    for department_data in dept_totals.values():
+        # Iterate over dictionaries in the list
+        for obj in department_data:
+            value = obj.get(netperd, 0)
+            if isinstance(value, str):
+                value = Decimal(value)
+            total += value
+
+    return total
 
 
 @register.filter(name='calculate_sum_quarter')
 def calculate_sum_quarter(obj, q):
     if q == 1:
-        return sum(getattr(obj, f'period{i}', 0) for i in range(1, 4))
+        return sum(getattr(obj, f'netperd{i}', 0) for i in range(1, 4))
     elif q == 2:
-        return sum(getattr(obj, f'period{i}', 0) for i in range(4, 7))
+        return sum(getattr(obj, f'netperd{i}', 0) for i in range(4, 7))
     elif q == 3:
-        return sum(getattr(obj, f'period{i}', 0) for i in range(7, 10))
+        return sum(getattr(obj, f'netperd{i}', 0) for i in range(7, 10))
     elif q == 4:
-        return sum(getattr(obj, f'period{i}', 0) for i in range(10, 13))
+        return sum(getattr(obj, f'netperd{i}', 0) for i in range(10, 13))
     else:
         raise (ValueError("Quarter number should be between 1 and 4"))
 
@@ -28,9 +47,9 @@ def calculate_sum_quarter(obj, q):
 @register.filter(name='calculate_sum_half')
 def calculate_sum_half(obj, q):
     if q == 1:
-        return sum(getattr(obj, f'period{i}', 0) for i in range(1, 7))
+        return sum(getattr(obj, f'netperd{i}', 0) for i in range(1, 7))
     elif q == 2:
-        return sum(getattr(obj, f'period{i}', 0) for i in range(7, 13))
+        return sum(getattr(obj, f'netperd{i}', 0) for i in range(7, 13))
 
 
 @register.filter(name='calculate_sum')
@@ -68,7 +87,7 @@ def calculate_obj_id(user):
 @register.filter(name='budget_status_filter')
 def budget_status(queryset):
     for object in queryset:
-        obj = get_object_or_404(BudgetStatus, department=object.department, budget_set=object.budget_set)
+        obj = get_object_or_404(BudgetVariations, budget_set=object.budget_set)
         if obj.is_complete:
             return True
         else:
@@ -78,8 +97,17 @@ def budget_status(queryset):
 @register.filter(name='budget_active_filter')
 def budget_status(queryset):
     for object in queryset:
-        obj = get_object_or_404(BudgetStatus, department=object.department, budget_set=object.budget_set)
+        obj = get_object_or_404(BudgetVariations, budget_set=object.budget_set)
         if obj.is_active:
             return True
         else:
             return False
+
+
+@register.filter(name='object_complete_filter')
+def budget_status(objct):
+    obj = get_object_or_404(BudgetVariations, budget_set=objct.budget_set)
+    if obj.is_complete:
+        return True
+    else:
+        return False

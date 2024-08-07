@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load filters %}
+{% load static %}
+{% block content %}
+    <div id="loader" class="loader is-hidden"></div>
+    <div id="app">
+        <section class="section is-title-bar">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="hero is-hero-bar">
+            <div class="hero-body">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item"><h1 class="title">
+                            Generate Reports
+                        </h1></div>
+                    </div>
+                    <div class="level-right">
+                    </div>
+                </div>
+            </div>
+        </section>
+     
+        <section class="section is-main-section ">
+            <div class="card p-4">
+                    <form method="POST" action="">
+                        {% csrf_token %}
+                            <div class="field is-horizontal">
+                                <div class="field-label is-normal">
+                                    <label class="label">Budget type</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                         <div class="select is-small mx-1 ">
+                                            <select id="budget-select" name="budget-select">
+                                                <option value="all">All</option>
+                                                <option value="capex">Capex</option>
+                                                <option value="opex">Opex</option>
+                                            </select>
+                             </div>  
+                                        
+                                         <button type="button" id="viewButton" class="button is-small is-info"
+                                                        >
+                                                    <span>View <i class="mdi mdi-table"></i></span>
+                                                </button>
+                                                <button type="button" id="generateButton" class="button is-small is-info"
+                                                        >
+                                                    <span>Download<i class="mdi mdi-file-download"></i></span>
+                                                </button>
+                                            </div>
+                                    </div>
+                                </div>
+                            </div>
+                        
+
+                            
+                    </form>
+       </div>
+            
+        </section>
+
+    </div>
+{% endblock %}
+{% block extra-scripts %}
+<script>
+const units = document.getElementById('budget-select')
+const firstCheckboxes = document.querySelectorAll('[class="checkboxes"]')
+const secondCheckboxes = document.querySelectorAll('[class="checkboxes1"]')
+const viewButton = document.getElementById('viewButton');
+const generateButton = document.getElementById('generateButton')
+const selectedValues = {};
+let clickedButton 
+units.addEventListener('change', () => {
+    selectedValues.units = units.value;
+    });
+firstCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            // Uncheck all other checkboxes in the first set
+            firstCheckboxes.forEach(otherCb => {
+                if (otherCb !== cb) {
+                    otherCb.checked = false;
+                }
+            });
+
+            selectedValues.firstCheckboxes = Array.from(firstCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+            
+        });
+    });
+
+viewButton.addEventListener('click', () => {
+                        clickedButton = 'View';
+                        selectedValues.clickedButton = clickedButton;
+                        console.log(selectedValues)
+                        if(Object.keys(selectedValues).length === 3) {
+                            sendDataToBackend(selectedValues, 'POST');
+                        }
+                        else
+                        {
+                         alert('please select unit and filter')    
+                        }
+                    });
+
+generateButton.addEventListener('click', () => {
+                        clickedButton = 'Download';
+                        selectedValues.clickedButton = clickedButton;
+                        if(Object.keys(selectedValues).length === 3) {
+                        sendDataToBackend(selectedValues,'GET');
+                        }
+                        else
+                        {
+                         alert('please select unit and filter')    
+                        }
+                        
+                    });
+function sendDataToBackend(selectedValues,method) {
+   fetch('/reports/', {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify(selectedValues)
+    }).then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+       .then(response =>{
+           const tablebody = document.getElementById('table-body')
+            let data = response.data
+           data.forEach(acc => {
+               var newRow = document.createElement("tr");
+               newRow.setAttribute("role", "row");
+               newRow.classList.add(`new-row-${acc.id}`)
+
+               var accountIdCell = document.createElement("td");
+               accountIdCell.textContent = acc.acctid
+               newRow.appendChild(accountIdCell);
+
+               var accountNameCell = document.createElement("td");
+               accountNameCell.textContent = acc.acctdesc
+               newRow.appendChild(accountNameCell);
+
+               var currencyCell = document.createElement("td");
+               currencyCell.textContent = acc.currency; // Assuming acc.Q1 contains the Q1 value
+               currencyCell.style.fontSize = '0.9em',
+                   newRow.appendChild(currencyCell);
+               var q1aCell = document.createElement("td");
+               q1aCell.textContent = acc.year; // Assuming acc.Q1 contains the Q1 value
+               q1aCell.style.fontSize = '0.9em',
+                   newRow.appendChild(q1aCell);
+
+               var q2Cell = document.createElement("td");
+               q2Cell.textContent = acc.total; // Assuming acc.Q2 contains the Q2 value
+               q2Cell.style.fontSize = '0.9em',
+                   newRow.appendChild(q2Cell);
+               var q2aCell = document.createElement("td");
+               q2aCell.textContent = acc.netperd1; // Assuming acc.Q2 contains the Q2 value
+               q2aCell.style.fontSize = '0.9em',
+                   newRow.appendChild(q2aCell);
+
+               var h1Cell = document.createElement("td");
+               h1Cell.setAttribute("data-label", "Budget Total");
+               h1Cell.textContent = acc.netperd2; // Assuming acc.H1 contains the H1 value
+               h1Cell.style.fontSize = '0.9em',
+                   newRow.appendChild(h1Cell);
+
+               var h1aCell = document.createElement("td");
+               h1aCell.setAttribute("data-label", "Budget Total");
+               h1aCell.textContent = acc.netperd3; // Assuming acc.H1 contains the H1 value
+               h1aCell.style.fontSize = '0.9em',
+                   newRow.appendChild(h1aCell);
+
+               var janCell = document.createElement("td");
+               janCell.setAttribute("data-label", "Jan");
+               janCell.textContent = acc.netperd4; // Assuming acc.Q3 contains the Q3 value
+               janCell.style.fontSize = '0.9em',
+                   newRow.appendChild(janCell);
+               var janaCell = document.createElement("td");
+               janaCell.setAttribute("data-label", "Jan");
+               janaCell.textContent = acc.netperd5; // Assuming acc.Q3 contains the Q3 value
+               janaCell.style.fontSize = '0.9em',
+                   newRow.appendChild(janaCell);
+
+               var febCell = document.createElement("td");
+               febCell.setAttribute("data-label", "Feb");
+               febCell.textContent = acc.netperd6; // Assuming acc.Q4 contains the Q4 value
+               febCell.style.fontSize = '0.9em',
+                   newRow.appendChild(febCell);
+               var febaCell = document.createElement("td");
+               febaCell.setAttribute("data-label", "Feb");
+               febaCell.textContent = acc.netperd7; // Assuming acc.Q4 contains the Q4 value
+               febaCell.style.fontSize = '0.9em',
+                   newRow.appendChild(febaCell);
+
+               var marCell = document.createElement("td");
+               marCell.setAttribute("data-label", "Mar");
+               marCell.textContent = acc.netperd8; // Assuming acc.H2 contains the H2 value
+               marCell.style.fontSize = '0.9em',
+                   newRow.appendChild(marCell);
+               var maraCell = document.createElement("td");
+               maraCell.setAttribute("data-label", "Mar");
+               maraCell.textContent = acc.netperd9; // Assuming acc.H2 contains the H2 value
+               maraCell.style.fontSize = '0.9em',
+                   newRow.appendChild(maraCell);
+
+               var aprCell = document.createElement("td");
+               aprCell.setAttribute("data-label", "Apr");
+               aprCell.textContent = acc.netperd10; // Assuming acc.YRT contains the YRT value
+               aprCell.style.fontSize = '0.9em',
+                   newRow.appendChild(aprCell);
+               var aprsCell = document.createElement("td");
+               aprsCell.setAttribute("data-label", "Apr");
+               aprsCell.textContent = acc.netperd11; // Assuming acc.YRT contains the YRT value
+               aprsCell.style.fontSize = '0.9em',
+                   newRow.appendChild(aprsCell);
+               var aprzCell = document.createElement("td");
+               aprzCell.setAttribute("data-label", "Apr");
+               aprzCell.textContent = acc.netperd12; // Assuming acc.YRT contains the YRT value
+               aprzCell.style.fontSize = '0.9em',
+                   newRow.appendChild(aprzCell);
+               console.log(newRow)
+               // Append the new row to the table body
+              
+               tablebody.appendChild(newRow);
+           })
+   })
+       
+    
+
+    
+}
+function getCSRFToken() {
+        let csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken')).split('=')[1];
+        if (csrfToken == null) {
+            csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+        }
+        return csrfToken;
+    }
+</script>
+{% endblock %}

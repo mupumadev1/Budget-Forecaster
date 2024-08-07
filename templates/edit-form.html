@@ -11,9 +11,13 @@
             <div class="hero-body">
                 <div class="level">
                     <div class="level-left">
-                        <div class="level-item"><h1 class="title">
+                        <div class="level-item">
+                            <a href="{% url 'budgets:update' object.id %}" ><h1 class="title">
                             Update Budget
-                        </h1></div>
+                            </h1></a><i class="mdi mdi-chevron-right mdi-24px"></i><a href="{% url 'budgets:edit-line' obj.id %}" ><h1 class="title">
+                            Edit Line
+                        </h1></a>
+                        </div>
                     </div>
                     <div class="level-right" style="display: none;">
                         <div class="level-item"></div>
@@ -21,18 +25,34 @@
                 </div>
             </div>
         </section>
-        {% if form %}
             <section class="section is-main-section">
-                <div class="card is-hidden" id="add-line">
+                <div class="card">
 
                     <header class="card-header">
                         <p class="card-header-title">
                             <span class="icon"><i class="mdi mdi-ballot"></i></span>
-                            Update {{ department }} budget
+                           Edit {{object.account.acctdesc}} budget line
                         </p>
-                
+                        
+                                <div class="select is-left is-small">
+
+                                    <select class="m-1 has-text-centered" id="entry_type"
+                                            data-object-id="{{ object.id }}"
+                                            name="entry_type" style="font-weight: 700">
+                                        <option disabled selected style="display: none ;">Choose Editing Type</option>
+                                        <option class="jb-modal" data-target="form-settings-modal" value="formula">Edit
+                                            By
+                                            Formula
+                                        </option>
+                                        <option value="manual">Edit By Month</option>
+
+                                    </select>
+                                </div>
+                                
+                        
                     </header>
-                    <form method="POST" action="{% url 'budgets:update' object_id=object.id %}">
+                    <form method="POST" action="{% url 'budgets:edit-line' object_id=obj.id %}">
+                      
                         {% csrf_token %}
                         <div class="card-content">
                             <div class="field is-horizontal">
@@ -71,8 +91,9 @@
                                     <div class="field">
                                         <div class="control">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input overall" type="text" name="item_description"
-                                                >
+                                       
+                                                
+                                                {% render_field form.item_description class="input overall" %}
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-file-edit"></i></span>
                                             </p>
@@ -81,8 +102,8 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="field is-horizontal">
+                        <div  id="add-line" class="is-hidden">
+                            <div class="field is-horizontal ">
                                 <div class="field-label is-normal">
                                     <label class="label">Currency</label>
                                 </div>
@@ -90,15 +111,10 @@
                                     <div class="field">
                                         <div class="select is-fullwidth">
                                             <p class="control is-expanded has-icons-left">
+                                            
                                                 <select name="currency" id="currency" class="overall">
                                                     {% for cur in currency %}
-                                                        {% if cur.currency == 'ZMW' %}
-                                                            <option value="{{ cur.id }}"
-                                                                    data-rate="{{ cur.rate }}">{{ cur.currency }}</option>
-                                                        {% else %}
-                                                            <option value="{{ cur.id }}"
-                                                                    data-rate="{{ cur.rate }}">{{ cur.currency }}</option>
-                                                        {% endif %}
+                                                        <option value="{{ cur.id }}" data-rate="{{ cur.rate }}" {% if cur.id == form.initial.currency %}selected{% endif %}>{{ cur.currency }}</option>
                                                     {% endfor %}
                                                 </select>
                                             </p>
@@ -110,14 +126,11 @@
                                     <div class="field" style="width:23%">
 
                                         <div class="select is-fullwidth">
-
-                                            <select id="assumptions-select" name="assumption">
-                                                <option></option>
-
+                                            <select id="assumptions-select" name="assumption" class="overall">
                                                 {% for asmp in assumptions %}
 
                                                     <option id="{{ asmp.id }}"
-                                                            data-value="{{ asmp.rate }}">{{ asmp.factor }}</option>
+                                                            data-value="{{ asmp.rate }}" {% if asmp.id == form.initial.assumption %}selected{% endif %}>{{ asmp.factor }}</option>
                                                 {% endfor %}
                                             </select>
 
@@ -135,9 +148,7 @@
                                     <div class="field-body">
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input formula-input" type="text" name="staff"
-
-                                                >
+                                                {% render_field form.staff class="input formula-input" %}
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-account-group-outline"></i></span>
                                             </p>
@@ -149,8 +160,7 @@
 
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input formula-input" type="text" id="factor" name="factor"
-                                                >
+                                                {% render_field form.factor class="input formula-input" %}
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-calculator-variant"></i></span>
                                             </p>
@@ -167,8 +177,8 @@
                                     <div class="field-body">
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input formula-input" type="text" name="usage"
-                                                >
+                                                {% render_field form.usage class="input formula-input" %}
+
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-calculator-variant"></i></span>
                                             </p>
@@ -180,8 +190,8 @@
 
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input formula-input" type="text" id="rate" name="rate"
-                                                >
+                                                {% render_field form.rate class="input formula-input" id='rate'%}
+
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-calculator-variant"></i></span>
                                             </p>
@@ -199,8 +209,8 @@
                                     <div class="field-body">
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input manual-input" type="text" name="netperd1"
-                                                >
+                                                 {% render_field form.netperd1 class="input manual-input" %}
+
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -210,10 +220,8 @@
                                         </div>
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left has-icons-right">
-                                                <input class="input manual-input " type="text"
-                                                       name="netperd2"
-
-                                                >
+                                                {% render_field form.netperd2 class="input manual-input" %}
+                                                
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -227,8 +235,8 @@
                                     <div class="field-body">
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input manual-input" type="text" name="netperd3"
-                                                >
+                                            {% render_field form.netperd3 class="input manual-input" %}
+
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -239,9 +247,8 @@
                                         <div class="field">
 
                                             <p class="control is-expanded has-icons-left has-icons-right">
-                                                <input class="input manual-input " type="text" name="netperd4"
+                                              {% render_field form.netperd4 class="input manual-input" %}
 
-                                                >
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -256,8 +263,8 @@
 
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input manual-input" type="text" name="netperd5"
-                                                >
+                                              {% render_field form.netperd5 class="input manual-input" %}
+
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -267,9 +274,8 @@
                                         </div>
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left has-icons-right">
-                                                <input class="input  manual-input" type="text" name="netperd6"
-
-                                                >
+                                            {% render_field form.netperd6 class="input manual-input" %}
+                                                
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -285,8 +291,8 @@
 
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input manual-input" type="text" name="netperd7"
-                                                >
+                                            {% render_field form.netperd7 class="input manual-input" %}
+                                              
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -296,9 +302,8 @@
                                         </div>
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left has-icons-right">
-                                                <input class="input manual-input" type="text" name="netperd8"
-
-                                                >
+                                            {% render_field form.netperd8 class="input manual-input" %}
+                                             
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -314,8 +319,8 @@
 
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input manual-input" type="text" name="netperd9"
-                                                >
+                                              {% render_field form.netperd9 class="input manual-input" %}
+
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -325,9 +330,8 @@
                                         </div>
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left has-icons-right">
-                                                <input class="input manual-input" type="text" name="netperd10"
+                                              {% render_field form.netperd10 class="input manual-input" %}
 
-                                                >
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -342,8 +346,8 @@
                                     <div class="field-body">
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left">
-                                                <input class="input manual-input" type="text" name="netperd11"
-                                                >
+                                            {% render_field form.netperd11 class="input manual-input" %}
+                                              
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -353,9 +357,8 @@
                                         </div>
                                         <div class="field">
                                             <p class="control is-expanded has-icons-left has-icons-right">
-                                                <input class="input manual-input" type="text" name="netperd12"
-
-                                                >
+                                            {% render_field form.netperd12 class="input manual-input" %}
+                                               
                                                 <span class="icon is-small is-left"><i
                                                         class="mdi mdi-cash-multiple"></i></span>
                                             </p>
@@ -364,6 +367,7 @@
                                 </div>
                             </div>
                             <hr style="margin: 0.5rem">
+                        </div>
                             <div class="field level">
                                 <div class="field-label level-left">
                                     <!-- Left empty for spacing -->
@@ -372,8 +376,7 @@
                                     <div class="field">
                                         <div class="field is-grouped">
                                             <div class="control">
-                                                <button type="submit" id="submitButton" class="button is-info"
-                                                        disabled>
+                                                <button type="button" id="submitButton" class="button is-info" data-objectIdentification={{ object.id }} disabled>
                                                     <span>Update</span>
                                                 </button>
                                             </div>
@@ -381,249 +384,21 @@
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </form>
 
-                </div>
-                <div class="card has-table">
-                    <header class="card-header">
-                        <div class="field-body px-2">
-                            <a href="
-                                    
-                                    {% if first_obj.id != obj.id %}{% url 'budgets:update' object_id=first_obj.id %}{% else %} # {% endif %}"
-                               data-object-id="{{ first_obj.id }}" class="has-text-black account-name-toggle mt-2"><span
-                                    class="mdi mdi-page-first mdi-24px"></span></a>
-                            <a href="
-
-                                    
-                                    {% if prev_obj %}{% url 'budgets:update' object_id=prev_obj.id %} {% else %} # {% endif %}"
-                               data-object-id="{{ previous_obj.id }}"
-                               class="has-text-black account-name-toggle mt-2"><span
-                                    class="mdi mdi-skip-previous mdi-24px"></span></a>
-                            <p class="card-header-title mt-2 mx-2" style="flex-grow: 0;padding: 0">{{ name }} Budget
-                                Lines</p>
-                            <a href="
-                                    
-                                    {% if next_obj %}{% url 'budgets:update' object_id=next_obj.id %}{% else %} # {% endif %}"
-                               data-object-id="{{ next_obj.id }}" class="has-text-black account mt-2"><span
-                                    class="mdi mdi-skip-next mdi-24px"></span></a>
-                            <a href="
-                                    
-                                    {% if last_obj.id != obj.id %}{% url 'budgets:update' object_id=last_obj.id %}{% else %}#{% endif %}"
-                               data-object-id="{{ last_obj.id }}" class="has-text-black mt-2"><span
-                                    class="mdi mdi-page-last mdi-24px"></span></a>
-
-                            <a class="jb-modal ml-1 mt-2" data-target="account-search-modal" style="flex-grow: 1"><span
-                                    class="mdi mdi-search-web mdi-24px"></span></a>
-                            <div class="control">
-                            {% if user.role == '002' and object|object_complete_filter == True %}
-                         <button data-target="upload-modal"
-                                        class=" button  jb-modal has-text-black is-small m-1" >
-                                    <span>Save Changes</span>
-                                    <span class="icon"><i class="mdi mdi-upload"></i></span>
-                                </button>
-                        {% endif %}
-                                <div class="select is-left is-small">
-
-                                    <select class="m-1 has-text-centered" id="entry_type"
-                                            data-object-id="{{ object.id }}"
-                                            name="entry_type" style="font-weight: 700">
-                                        <option disabled selected style="display: none ;">Add Line</option>
-                                        <option class="jb-modal" data-target="form-settings-modal" value="formula">Input
-                                            By
-                                            Formula
-                                        </option>
-                                        <option value="manual">Input By Month</option>
-
-                                    </select>
-                                </div>
-                                {% if request.user.role != '002' %}
-
-                                    <button
-                                            class="button is-light-passive m-1 is-outlined is-small">
-                                        <span class="has-text-weight-bold">{{ activebs }}</span>
-                                    </button>
-                                {% endif %}
-                            </div>
-                    </header>
-                    <div class="card-content">
-                        <div class="level " style="margin-top:0.5rem;margin-bottom:1rem; font-weight:bold;">
-                            <div class="level-left">
-                                <p class="mx-2 mt-1"> Total : ZMW {{ lines|calculate_sum }}</p>
-
-                            </div>
-                            <div class="level-right">
-
-                            </div>
-                        </div>
-                        <div class="table-wrapper has-mobile-cards p-2"
-                             style="overflow-y:auto;">
-
-                            <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
-                                   role="grid">
-                                <thead>
-                                <tr>
-                                    <th>Account ID</th>
-                                    <th>Item Description</th>
-                                    <th>Currency</th>
-                                    <th>Exchange Rate</th>
-                                    <th>Rate</th>
-                                    <th>Usage</th>
-
-                                    <th>Staff</th>
-                                    <th>Factor</th>
-                                    <th>Total</th>
-                                    <th>Jan</th>
-                                    <th>Feb</th>
-                                    <th>Mar</th>
-                                    <th>Apr</th>
-                                    <th role="columnheader">May</th>
-                                    <th role="columnheader">Jun</th>
-                                    <th role="columnheader">Jul</th>
-                                    <th role="columnheader">Aug</th>
-                                    <th role="columnheader">Sep</th>
-                                    <th role="columnheader">Oct</th>
-                                    <th role="columnheader">Nov</th>
-                                    <th role="columnheader">Dec</th>
-                                    <th>Actions</th>
-
-                                </tr>
-                                </thead>
-
-                                <tbody class="budget-table-body" role="rowgroup">
-
-                                {% if lines %}
-                                    <tr class="has-text-weight-bold p-2">
-                                        <td data-label="Account id">Totals</td>
-                                        <td data-label="Account name"
-                                            style="width: 10%;"></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td data-label="Budget Total">{{ lines|calculate_sum }}</td>
-                                        <td data-label="Jan">{{ lines|calculate_sum_month:1 }}</td>
-                                        <td data-label="Feb">{{ lines|calculate_sum_month:2 }}
-                                        </td>
-                                        <td data-label="Mar">{{ lines|calculate_sum_month:3 }}
-                                        </td>
-                                        <td data-label="Apr">{{ lines|calculate_sum_month:4 }}
-                                        </td>
-                                        <td data-label="May">{{ lines|calculate_sum_month:5 }}
-                                        </td>
-                                        <td data-label="Jun">{{ lines|calculate_sum_month:6 }}
-                                        </td>
-                                        <td data-label="Jul">{{ lines|calculate_sum_month:7 }}
-                                        </td>
-                                        <td data-label="Aug">{{ lines|calculate_sum_month:8 }}
-                                        </td>
-                                        <td data-label="Sep">{{ lines|calculate_sum_month:9 }}
-                                        </td>
-                                        <td data-label="Oct">{{ lines|calculate_sum_month:10 }}
-                                        </td>
-                                        <td data-label="Nov">{{ lines|calculate_sum_month:11 }}
-                                        </td>
-                                        <td data-label="Dec">{{ lines|calculate_sum_month:12 }}
-                                        </td>
-                                        <td class="is-actions-cell">
-                                            <div class="buttons is-right">
-                                                <a>
-                                                    <span class="icon"></span>
-                                                </a>
-                                                <a>
-                                                    <span class="icon"></span>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% for account in lines %}
-    <tr role="row" data-total="{{ account.total }}">
-        <td data-label="Account id">{{ account.account.acctfmttd }}</td>
-        <td data-label="Item Description" style="width: 10%;">{{ account.item_description }}</td>
-        <td data-label="currency">{{ account.currency.currency }}</td>
-        <td data-label="exchange">{{ account.exchange_rate }}</td>
-
-        <td data-label="rate">{{ account.rate }}</td>
-        <td data-label="usage">{{ account.usage }}</td>
-        <td data-label="staff">{{ account.staff }}</td>
-        <td data-label="factor">{{ account.factor }}</td>
-        <td data-label="Budget Total">{{ account.total }}</td>
-        <td data-label="Jan">{{ account.netperd1 }}</td>
-        <td data-label="Feb">{{ account.netperd2 }}</td>
-        <td data-label="Mar">{{ account.netperd3 }}</td>
-        <td data-label="Apr">{{ account.netperd4 }}</td>
-        <td data-label="May">{{ account.netperd5 }}</td>
-        <td data-label="Jun">{{ account.netperd6 }}</td>
-        <td data-label="Jul">{{ account.netperd7 }}</td>
-        <td data-label="Aug">{{ account.netperd8 }}</td>
-        <td data-label="Sep">{{ account.netperd9 }}</td>
-        <td data-label="Oct">{{ account.netperd10 }}</td>
-        <td data-label="Nov">{{ account.netperd11 }}</td>
-        <td data-label="Dec">{{ account.netperd12 }}</td>
-        <td class="is-actions-cell">
-            <div class="buttons is-right">
-                <a href="{% url 'budgets:edit-line' account.id %}" class="button is-small" type="button">
-                    <span class="icon"><i class="mdi mdi-file-edit"></i></span>
-                </a>
-                <a class="button is-small is-danger-passive jb-modal" data-target="delete-line-modal-{{ account.id }}" type="button">
-                    <span class="icon"><i class="mdi mdi-trash-can"></i></span>
-                </a>
-            </div>
-        </td>
-    </tr>
-    <div id="delete-line-modal-{{ account.id }}" class="modal">
-        <div class="modal-background jb-modal-close"></div>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Confirm action</p>
-                <button class="delete jb-modal-close" aria-label="close"></button>
-            </header>
-            <section class="modal-card-body">
-                <p>Performing this action is irreversible, would you like to <a href="{%  url 'budgets:edit-line' account.id %}">edit</a> instead?</p>
-            </section>
-            <footer class="modal-card-foot">
-                <a class="button jb-modal-close">Cancel</a>
-                <a href="{% url 'budgets:clear-line' account.id %}" class="button is-danger jb-modal-close">Delete</a>
-            </footer>
-        </div>
-        <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
-    </div>
-{% endfor %}                                
-                                {% else %}
-                                    <tr>
-                                        <td colspan="22">
-
-                                            <div class="mx-auto p-3"><p>No Lines Created For This Account</p></div>
-                                        </td>
-                                    </tr>
-                                {% endif %}
-                                </tbody>
-
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
+                
+</div>
             </section>
             {% include 'partials/account-search-modal.html' %}
             {% include 'partials/entry-type-modal.html' %}
 
-        {% else %}
-            <section class="section is-main-section">
-                <div class="card">
-                    <p class="is-centered m-6"> No Budget Sets Currently Active</p>
-                </div>
-            </section>
-        {% endif %}
+      
     </div>
 
 
 
 {% endblock %}
-        {% include 'partials/post-modal.html' %}
 
 
 {% block extra-scripts %}

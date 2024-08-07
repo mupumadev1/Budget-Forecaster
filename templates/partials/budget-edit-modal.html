@@ -12,14 +12,14 @@
                     <div class="field ml-2">
                         <div class="field is-grouped-multiline is-grouped">
                             <div class="control">
-                                <label class="b-checkbox checkbox"><input type="checkbox" id="evenly" class="checkb"
-                                                                          value="evenly">
+                                <label class="b-checkbox checkbox"><input type="checkbox" id="editByformula" class="editCheckb"
+                                                                          value="formula">
                                     <span class="check is-primary"></span>
                                     <span class="control-label">By Formula</span>
                                 </label>
                             </div>
                             <div class="control">
-                                <label class="b-checkbox checkbox"><input type="checkbox" id="months" class="checkb"
+                                <label class="b-checkbox checkbox"><input type="checkbox" id="editBymonth" class="ceditCheckb"
                                                                           value="months">
                                     <span class="check is-primary"></span>
                                     <span class="control-label">By Month</span>
@@ -38,7 +38,7 @@
             <button class="button jb-modal-close">Cancel</button>
         </footer>
     </div>
-    <div class="modal-card is-hidden">
+    <div class="modal-card is-hidden" id="chooseDistribution">
         
         <header class="modal-card-head">
             <p class="modal-card-title">Choose Distribution</p>
@@ -77,7 +77,6 @@
 
                 </div>
             </div>
-
             <div class="field has-check is-horizontal  is-hidden" id="months-div">
                 <hr style="margin: 1rem">
                 <div class="field-body">
@@ -222,3 +221,58 @@
     </div>
     <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
 </div>
+<!---<script>
+    const editformulaCB = document.getElementById('editByFormula')
+    const editmonthsCB = document.getElementById('editBymonths')
+    const distrubuteByQuarterCB = document.getElementById('dist-quarter')
+    const distrubuteEvenlyCB = document.getElementById('dist-evenly')
+    const distrubutionDiv= document.getElementById('chooseDistribution')
+    const distrubuteByMonthCB = document.getElementById('dist-month')
+    const checkbElements = document.querySelectorAll('.editCheckb');
+    
+    if (checkbElements.length > 0) {
+        checkbElements.forEach(cb => {
+            cb.addEventListener('click', handleCheck);
+        });
+    }
+
+// Function to handle checkbox clicks to specify amount distribution
+    function handleCheck() {
+        if (editformulaCB.checked) {
+            distrubutionDiv.classList.remove('is hidden')
+            
+
+        } else if (editmonthsCB.checked) {
+            fetch(`edit_line/${}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    
+                    }
+                )
+        } else if (quarterCB.checked) {
+            editmonthsCB.checked = false
+            editevenlyCB.checked = false
+            editquarterDiv.classList.remove('is-hidden')
+            editmonthsDiv.classList.add('is-hidden')
+            document.querySelectorAll('.quaterlyCheckbox').forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    quarter = [];
+                    let checkedBoxes = document.querySelectorAll('.quaterlyCheckbox:checked');
+                    checkedBoxes.forEach(function (checkbox) {
+                        quarter.push(checkbox.value);
+                    });
+                });
+            });
+
+        } else {
+            editmonthsDiv.classList.add('is-hidden')
+            editquarterDiv.classList.add('is-hidden')
+        }
+    }
+
+</script>-->
