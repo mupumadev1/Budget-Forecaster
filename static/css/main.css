@@ -15023,8 +15023,9 @@ table.table td.is-actions-cell {
     z-index: 100;
     background-color: white;
 }
-
-
+.button.budget-variation{
+    z-index: 101;
+}
 
 .b-table {
     /* This stylizes buefy's pagination */

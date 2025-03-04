@@ -17,7 +17,7 @@
                 <div class="level">
                     <div class="level-left">
                     <div class="level-item">
-                        <nav class="breadcrumb" aria-label="breadcrumbs">
+                        <nav class="breadcrumb is-uppercase" aria-label="breadcrumbs">
                               <ul>
                                   <li><a {% if request.user.role == '001' %}href="{% url 'budgets:dashboard-home-department' %}{% elif request.user.role == '002' %}href="{% url 'budgets:dashboard-home' %}"{% endif %}"><h1>Dashboard</h1></a>
                                 </li>

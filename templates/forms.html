@@ -11,9 +11,16 @@
             <div class="hero-body">
                 <div class="level">
                     <div class="level-left">
-                        <div class="level-item"><h1 class="title">
-                            Update Budget
-                        </h1></div>
+                        <div class="level-item">
+                            <nav class="breadcrumb  is-uppercase " aria-label="breadcrumbs">
+                                <ul >
+                                   <li><a href="{% if object.department.id == 13 %}{% url 'budgets:home' %}{% else %}{% url 'budgets:home-opex' %}{% endif %}" style="text-decoration: none">Update Budget</a></li>
+                                    <li><a href="{% if object.department.id == 13 %}{% url 'budgets:home' %}{% else %}{% url 'budgets:home-opex' %}{% endif %}" style="text-decoration: none">{{ department }}</a> </li>
+                                    <li><a style="text-decoration: none"> {{ name }}</a></li>
+                                </ul>
+                            
+                            </nav>
+                        </div>
                     </div>
                     <div class="level-right" style="display: none;">
                         <div class="level-item"></div>
@@ -373,7 +380,7 @@
                                         <div class="field is-grouped">
                                             <div class="control">
                                                 <button type="submit" id="submitButton" class="button is-info"
-                                                        disabled>
+                                                        >
                                                     <span>Update</span>
                                                 </button>
                                             </div>
@@ -565,7 +572,7 @@
         <td data-label="Dec">{{ account.netperd12 }}</td>
         <td class="is-actions-cell">
             <div class="buttons is-right">
-                <a href="{% url 'budgets:edit-line' account.id %}" class="button is-small" type="button">
+                <a  class="button is-small jb-modal" data-target="edit-line-modal-{{ account.id }}" type="button">
                     <span class="icon"><i class="mdi mdi-file-edit"></i></span>
                 </a>
                 <a class="button is-small is-danger-passive jb-modal" data-target="delete-line-modal-{{ account.id }}" type="button">
@@ -574,6 +581,25 @@
             </div>
         </td>
     </tr>
+                                    <div id="edit-line-modal-{{ account.id }}" class="modal">
+        <div class="modal-background jb-modal-close"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Choose action</p>
+                <button class="delete jb-modal-close" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="has-text-centered">
+                 <a class="button r-1" href="{%  url 'budgets:vary-budget' account.id %}" >Make variations </a>
+                    <a class="button" href="{%  url 'budgets:edit-line' account.id %}">Make adjustment to line</a>
+                </div>
+
+            </section>
+            <footer class="modal-card-foot">
+                <a class="button jb-modal-close">Cancel</a>
+            </footer>
+        </div>
+        <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
     <div id="delete-line-modal-{{ account.id }}" class="modal">
         <div class="modal-background jb-modal-close"></div>
         <div class="modal-card">

@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const checkbox = document.getElementById('non-zero')
     const deptList = document.querySelectorAll('a.dropdown-item.dept-list')
     const parentAccordion = document.querySelectorAll(".card-header-icon.accordion-button")
-    const childAccordion = document.querySelectorAll(".accordion-button")
+    const childAccordion = document.querySelectorAll(".child-accordion-button")
     const notficDismiss = document.querySelectorAll(".jb-notification-dismiss")
     const chngeNotification = document.getElementById("change-notification")
     const monthsDiv = document.getElementById('months-div')
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         var updatedObjId = objId.replace(/\d+/, newNumber);
 
                         // Update the window location with the new objId
-                        window.location.href = "/home/dept/" + updatedObjId;
+                        window.location.reload();
                     }
                 })
 
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     return response.json();
                 })
                 .then(result => {
-                    window.location.href = "/home/dept/" + objId
+                    window.location.reload()
                 })
 
         });
@@ -142,31 +142,59 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         })
     }
-    if (parentAccordion.length > 0) {
+     if (parentAccordion.length > 0) {
+        parentAccordion.forEach(function(button) {
+            button.addEventListener("click", function () {
+                const parentHeader = this.closest("header");
+                const parentAccordionContent = parentHeader.nextElementSibling;
 
-        parentAccordion.forEach(function (parentButton) {
-            parentButton.addEventListener("click", function () {
-                var parentAccordionContent = this.closest(".card").querySelector(".parent-accordion-content");
-                parentAccordionContent.classList.toggle('is-hidden')
-                let deptId = parentAccordionContent.dataset.department
-                console.log(deptId)
-                addEventListenerToAnchorTag(deptId);
+                if (parentAccordionContent.classList.contains("parent-accordion-content")) {
+                    // Toggle visibility of the accordion content
+                    parentAccordionContent.classList.toggle("is-hidden");
 
+                    // Update the icon
+                    const icon = this.querySelector("i");
+                    if (parentAccordionContent.classList.contains("is-hidden")) {
+                        icon.classList.remove("mdi-minus-thick");
+                        icon.classList.add("mdi-plus-thick");
+                    } else {
+                        icon.classList.remove("mdi-plus-thick");
+                        icon.classList.add("mdi-minus-thick");
+                    }
+
+                    let deptId = parentAccordionContent.dataset.department;
+                    console.log(deptId);
+                    addEventListenerToAnchorTag(deptId); // Ensure this function is defined elsewhere
+                }
+                const subAccordionButtons = parentAccordionContent.querySelectorAll('.sub-group-container .accordion-button');
+                if (subAccordionButtons) {
+                    subAccordionButtons.forEach(function (subButton) {
+                        subButton.addEventListener("click", function () {
+                            const subHeader = this.closest("header");
+                            const subAccordionContent = subHeader.nextElementSibling;
+
+                            if (subAccordionContent.classList.contains("sub-accordion-content")) {
+                                // Toggle visibility of the sub-group accordion content
+                                subAccordionContent.classList.toggle("is-hidden");
+
+                                // Update the icon for the sub-group
+                                const subIcon = this.querySelector("i");
+                                if (subAccordionContent.classList.contains("is-hidden")) {
+                                    subIcon.classList.remove("mdi-minus-thick");
+                                    subIcon.classList.add("mdi-plus-thick");
+                                } else {
+                                    subIcon.classList.remove("mdi-plus-thick");
+                                    subIcon.classList.add("mdi-minus-thick");
+                                }
+                            }
+                        });
+                    });
+                }
             })
         })
-    }
-    if (childAccordion.length > 0) {
-
-        childAccordion.forEach(function (button) {
-            button.addEventListener("click", function () {
-                var content = this.closest(".accordion").querySelector(".accordion-content");
-
-                content.classList.toggle('is-hidden')
-
-            });
-        });
 
     }
+
 
 
     if (localStorage.getItem("showUploadNotification")) {
@@ -547,10 +575,14 @@ loadNotifications()
     }
 // Add event listeners to buttons with class 'is-info'
     if (submitBtn) {
+         let objctId = null;
         submitBtn.addEventListener('click', function (e) {
             e.preventDefault(); // Prevent default form submission
-            let rawObj = submitBtn.dataset.objectidentification.replace(',','')
-            let objctId = parseInt(rawObj)
+            if (!window.location.href.includes('update')) {
+               let rawObj = submitBtn.dataset.objectidentification.replace(',','')
+                objctId = parseInt(rawObj)
+            }
+
             let isValid = true;
             $('.manual-input, .formula-input').each(function () {
                 if (!handleError($(this))) {
@@ -570,7 +602,7 @@ loadNotifications()
                         formData[$(el).attr('name')] = parseFloat($(el).val()) || 0;
 
                     })
-                    const assumption = document.getElementById('assumptions-select').selectedOptions[0].textContent;
+                    const assumption = (document.getElementById('assumptions-select')?.selectedOptions[0]?.textContent) || 'None';
 
                     const rate = selectedCurrencyOption.dataset.rate;
                     let total
@@ -639,7 +671,7 @@ loadNotifications()
                             if (window.location.href.includes('update')) {
                                 window.location.href = ``
                             } else {
-                                window.location.href = ``
+                                window.location.href = `/update/${objctId}`
                             }
                         },
                         error: function (xhr, status, error) {
@@ -696,14 +728,32 @@ loadNotifications()
     }
 
 // Add event listener to toggleDropdown element
-    if (toggleDropdownElement) {
-        toggleDropdownElement.addEventListener("click", () => {
-            var dropdown = document.getElementById('myDropdown');
-            if (dropdown) {
-                dropdown.classList.toggle('is-active');
+    document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+    const trigger = dropdown.querySelector('.dropdown-trigger button');
+
+    trigger.addEventListener('click', function(event) {
+        // Close other active dropdowns
+        document.querySelectorAll('.dropdown.is-active').forEach(function(otherDropdown) {
+            if (otherDropdown !== dropdown) {
+                otherDropdown.classList.remove('is-active');
             }
         });
-    }
+
+        // Toggle the 'is-active' class on the clicked dropdown
+        dropdown.classList.toggle('is-active');
+    });
+});
+
+// Close the dropdown if clicking outside of it
+document.addEventListener('click', function(event) {
+    const target = event.target;
+    document.querySelectorAll('.dropdown.is-active').forEach(function(dropdown) {
+        if (!dropdown.contains(target)) {
+            dropdown.classList.remove('is-active');
+        }
+    });
+});
+
 
     const handleError = (input) => {
         let inputValue = input.val().trim();
@@ -868,10 +918,10 @@ loadNotifications()
             '</tr>';
 
         // Append the new row to the table
-        $("#assumptions").append(newRowHtml);
+        $("#currency_assumptions").append(newRowHtml);
 
         // Delegate click event for editBtn and deleteBtn within assumptions table
-        $("#assumptions").on("click", ".editBtn", function () {
+        $("#currency_assumptions").on("click", ".editBtn", function () {
             // Your edit button logic here
         });
 

@@ -15,6 +15,12 @@ SET_TYPE = (
     ('Budget 3', '3'),
 
 )
+YEAR = (
+    ('2024', '2024'),
+    ('2025', '2025'),
+    ('2026', '2026'),
+
+)
 
 
 class Department(models.Model):
@@ -22,9 +28,19 @@ class Department(models.Model):
     code = models.CharField(max_length=10)
 
 
+class Group(models.Model):
+    name = models.CharField(max_length=255)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True)
+    parent_group = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='sub_groups')
+
+    def __str__(self):
+        return self.name
+
 class Accounts(models.Model):
     acctid = models.CharField(db_column='ACCTID', primary_key=True, max_length=45,
                               )
+    group = models.ForeignKey(Group, on_delete=models.CASCADE,null=True)
+
     audtdate = models.DecimalField(db_column='AUDTDATE', max_digits=9, decimal_places=0)  # Field name made lowercase.
     audttime = models.DecimalField(db_column='AUDTTIME', max_digits=9, decimal_places=0)  # Field name made lowercase.
     audtuser = models.CharField(db_column='AUDTUSER', max_length=8,
@@ -128,18 +144,23 @@ class Currency(models.Model):
 
 class BudgetVariations(models.Model):
     budget_set = models.CharField(max_length=255, choices=SET_TYPE)
+    year = models.CharField(max_length=4, choices=YEAR)
     is_active = models.BooleanField(default=False)
     is_complete = models.BooleanField(default=False)
     is_posted = models.BooleanField(default=False)
     updated_by = models.ForeignKey(Users, on_delete=models.CASCADE)
 
+class FinancialYear(models.Model):
+    is_active = models.BooleanField(default=False)
+    year = models.CharField(max_length=4, choices=YEAR)
 
 class BudgetAssumptions(models.Model):
     factor = models.CharField(max_length=255, null=True)
     rate = models.DecimalField(decimal_places=2, max_digits=20, null=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     updated_by = models.ForeignKey(Users, on_delete=models.CASCADE)
-    
+
+
 
 
 class BudgetTotals(models.Model):
@@ -165,7 +186,7 @@ class BudgetTotals(models.Model):
     last_updated_by = models.ForeignKey(Users, on_delete=models.CASCADE)
     posted = models.BooleanField(default=False)
     exchange_rate = models.DecimalField(decimal_places=2, max_digits=20, null=True)
-    
+
 
     def calculate_quarter_sums(self):
         # Calculate the sum of each quarter based on the netperd fields
@@ -196,21 +217,54 @@ class BudgetTotals(models.Model):
         self.save()
 
 
+
+
 class ChangeLog(models.Model):
     flag = models.BooleanField(default=False)
-    department = models.CharField(max_length=255, null=True)
+    year = models.CharField(max_length=4, default='2024', null=True)
     budget_set = models.CharField(max_length=255, null=True)
 
+    def toggle_flag(self):
+        # Toggle the value of the flag
+        self.flag = not self.flag
+        # Save the instance to persist the change in the database
+        self.save()
+
+class BudgetLinesLogVariations(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(Users, on_delete=models.CASCADE)
+    action = models.CharField(max_length=50)
+    amount= models.DecimalField(decimal_places=2, max_digits=20,null=True)
+    item_description = models.CharField(max_length=255, null=True)
+    account = models.ForeignKey(Accounts, on_delete=models.CASCADE,default='11140                                        ')
+    department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True)
+    period = models.CharField(max_length=50)
+    year = models.CharField(max_length=4, default='2024')
+    comment= models.TextField()
 
 class BudgetLinesLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(Users, on_delete=models.CASCADE)
     action = models.CharField(max_length=50)
+    amount= models.DecimalField(decimal_places=2, max_digits=20,null=True)
     item_description = models.CharField(max_length=255, null=True)
     account = models.ForeignKey(Accounts, on_delete=models.CASCADE,default='11140                                        ')
     total = models.DecimalField(decimal_places=2, max_digits=20, null=True)
-    department = models.CharField(max_length=255, null=True)
-    budget_set = models.CharField(max_length=255, null=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True)
+    netperd1 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd2 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd3 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd4 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd5 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd6 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd7 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd8 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd9 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd10 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd11 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    netperd12 = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    year = models.CharField(max_length=4, default='2024')
+
 
 class AccountChanges(models.Model):
     account = models.ForeignKey(Accounts, on_delete=models.CASCADE,default='11140                                        ')
@@ -260,6 +314,7 @@ class BudgetLines(models.Model):
     last_updated_by = models.ForeignKey(Users, on_delete=models.CASCADE)
     posted = models.BooleanField(default=False)
     exchange_rate = models.DecimalField(decimal_places=2, max_digits=20, null=True)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE,null=True)
     
 
 

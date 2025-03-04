@@ -25,10 +25,24 @@
                             <th>Account Name</th>
                             <th>Item Description</th>
                             <th>Action</th>
-                            <th>Amount</th>
-                            <th>Department</th>
-                            <th>Budget Set</th>
+                         <th>Comment</th>
+                        <th>Total</th>
+                        <th>Amount</th>
+                        <th>Jan</th>
+                        <th>Feb</th>
+                        <th>Mar</th>
+                        <th>Apr</th>
+                        <th role="columnheader">May</th>
+                        <th role="columnheader">Jun</th>
+                        <th role="columnheader">Jul</th>
+                        <th role="columnheader">Aug</th>
+                        <th role="columnheader">Sep</th>
+                        <th role="columnheader">Oct</th>
+                        <th role="columnheader">Nov</th>
+                        <th role="columnheader">Dec</th>
+                           
                             <th>Time</th>
+                        
 
                         </tr>
                     </thead>
@@ -38,14 +52,38 @@
                             <tr data-id="{{ status.id }}">
 
                                 <td>{{ status.user.first_name }} {{ status.user.last_name }}</td>
-                                <td>{{ status.account_id }}</td>
                                 <td>{{ status.account.acctdesc }}</td>
                                 <td>{{ status.item_description }}</td>
                                 <td>{{ status.action }}</td>
+                               <td>{{ status.comment }}</td>
+                                
                                 <td>{{ status.total }}</td>
-                                <td>{{ status.department }}</td>
-                                <td>{{ status.budget_set }}</td>
-                                <td>{{ status.timestamp }}</td>
+                                <td data-label="Budget Total">{{ status.amount }}</td>
+                                <td data-label="Jan">{{ status.netperd1 }}</td>
+                                <td data-label="Feb">{{ status.netperd2 }}
+                                </td>
+                                <td data-label="Mar">{{ status.netperd3 }}
+                                </td>
+                                <td data-label="Apr">{{ status.netperd4 }}
+                                </td>
+                                <td data-label="May">{{ status.netperd5 }}
+                                </td>
+                                <td data-label="Jun">{{ status.netperd6 }}
+                                </td>
+                                <td data-label="Jul">{{ status.netperd7 }}
+                                </td>
+                                <td data-label="Aug">{{ status.netperd8 }}
+                                </td>
+                                <td data-label="Sep">{{ status.netperd9 }}
+                                </td>
+                                <td data-label="Oct">{{ status.netperd10 }}
+                                </td>
+                                <td data-label="Nov">{{ status.netperd11 }}
+                                </td>
+                                <td data-label="Dec">{{ status.netperd12 }}
+                                </td>
+                             <td data-label="Dec">{{ status.timestamp }}
+                                </td>
 
 
                             </tr>

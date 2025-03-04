@@ -1,0 +1,96 @@
+<div id="assign-group-modal-{{ acc.acctfmttd }}" class="modal">
+    <div class="modal-background jb-modal-close-group"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Assign group</p>
+            <button class="delete jb-modal-close-group" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form>
+            <div class="form-row">
+             
+               <input class="input" id="account_name" value="{{ acc.acctfmttd }}" disabled>
+              
+              
+                <div class="select">
+                    <select class="department-select" >
+                     <option disabled selected style="display: none">
+                       
+                    </option>
+                        {%  for dept in department %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+              
+                    <div class="select">
+                <select  class="group-select">
+                    <option selected disabled style="display: none">
+                       Select group
+                    </option>
+                </select>
+                         </div>
+              
+               
+            </div>
+            </form>
+            
+        </section>
+        <footer class="modal-card-foot">
+            <a class="button jb-modal-close-group is-small" >Cancel</a>
+             <button type="button" class="button is-small assign-group-button" >save</button>
+        </footer>
+    </div>
+    <button class="modal-close is-large jb-modal-close-group" aria-label="close"></button>
+</div>
+<!--<script>
+   document.addEventListener("DOMContentLoaded", function() {
+      
+    const dept = document.getElementById('department-select')
+    const group = document.getElementById('group-select')
+    const save = document.getElementById('assign-group-button')
+    let selectedDept
+    let selectedGroup
+    let account = document.getElementById('account_name').value
+    dept.addEventListener('change',()=>{
+       selectedDept = dept.value
+        if (selectedDept){
+           fetch(`/group_dept_list?dept=${selectedDept}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    const data = result.data;
+                    group.innerHTML = ""; 
+                    data.forEach(item => {
+                                    const option = document.createElement('option');
+                                    option.value = item.id; // Use group.id as value
+                                    option.textContent = item.name; // Use group.name as text
+                                    group.appendChild(option);
+                                });
+                })
+        }
+    })
+    group.addEventListener('change',()=>{
+        selectedGroup = group.value
+    })
+    save.addEventListener('click',(e)=>{
+        e.preventDefault()
+         fetch(`/assign_group?account=${account}&group=${selectedGroup}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    window.location.reload()
+                    })
+        
+    })
+        })
+</script>-->

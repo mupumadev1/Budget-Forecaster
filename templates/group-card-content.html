@@ -1,0 +1,183 @@
+{% load filters %}
+{% load static %}
+<div class="card has-table has-mobile-sort-spaced">
+    <header class="card-header">
+        <p class="card-header-title" >
+            <span class="icon"><i class="mdi mdi-account-multiple"></i></span>
+            {{ dept_name }} Accounts
+        </p>
+
+        <input id="searchInput" placeholder="Search..."  class="mr-1 mt-3 mb-2 input " style="max-width:200px">
+    <div class="select mr-1 mt-3 mb-2" style="max-width:200px; max-height:50px">
+        <select id="numberList">
+            <option selected disabled >Change Department</option>
+                {% for dept in department %}
+                <option value="{% url 'budgets:group-department-settings' dept.id  %}">
+                 {{dept.name}} 
+                </option>
+                {% endfor %}
+            </select>
+            
+        
+    </div>
+         
+                
+
+    </header>
+    <div class="card-content parent-accordion-content" data-department="{{ dept_name }}">
+   
+        {% if dept %}
+            <div class="level " style="margin-top:1.5rem; font-weight:bold;">
+                <div class="level-left">
+                    <p class="mx-2"></p>
+
+                </div>
+                <div class="level-right">
+                   
+                </div>
+            </div>
+            <div class="table-wrapper has-mobile-cards"
+                 style="overflow:auto;max-height:600px;">
+                <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                       role="grid">
+                    <thead>
+                    <tr>
+                        <th>Account ID</th>
+                        <th>Account Name</th>
+                        <th>Department</th>
+                        <th>Assign Group</th>
+                      
+
+                    </tr>
+                    </thead>
+                    <tbody class="budget-table-body" id="table-body-{{ dept_name }}" role="rowgroup">
+                    {% for acc in dept %}
+                        {% if acc %}
+                            <tr role="row" style="align-items: start" data-total="{{ acc.total }}">
+                                <td data-label="Account id" style="width:500px">{{ acc.acctfmttd.strip}}</td>
+                                <td data-label="Account name" style="width:500px">{{ acc.acctdesc.strip}}</td>
+                                <td style="width:500px">{{ acc.department.name }}</td>
+                                <td style="width:500px"><button class="button is-small jb-modal-group" data-target="assign-group-modal-{{ acc.acctfmttd }}">Assign new group</button></td>
+                                
+                            </tr>
+                        {% else %}
+                            <tr role="row">
+                            </tr>
+                        {% endif %}
+                        {% include 'partials/assign-group-modal.html' %}
+                        
+                    {% endfor %}
+
+
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        
+    </div>
+</div>
+<script>
+     const numberList = document.getElementById('numberList');
+
+    // Add click event listener to each list item
+   numberList.addEventListener('change', function() {
+        const selectedOptionValue = this.value; // Get the value of the selected option
+        if (selectedOptionValue) {
+            window.location.href = selectedOptionValue; // Redirect to the selected URL
+        }
+    });
+     const modalElements = document.querySelectorAll('.jb-modal-group');
+    const modalCloseElements = document.querySelectorAll('.jb-modal-close-group');
+if (modalElements.length > 0) {
+        modalElements.forEach(el => {
+            el.addEventListener('click', e => {
+                const modalTarget = e.currentTarget.getAttribute('data-target');
+                const modal = document.getElementById(modalTarget);
+                const dept = modal.querySelector('.department-select');
+                const group = modal.querySelector('.group-select')
+                const save = modal.querySelector('.assign-group-button')
+                let account = modal.querySelector('#account_name').value
+                // Activate the modal
+                if (dept) {
+                dept.selectedIndex = 0; // Reset to first option
+            }
+
+            if (group) {
+                group.innerHTML = ""; // Clear options
+                const defaultOption = document.createElement('option');
+                defaultOption.textContent = "Select group";
+                defaultOption.disabled = true;
+                defaultOption.selected = true;
+                group.appendChild(defaultOption);
+            }
+
+          
+           
+                modal.classList.add('is-active');
+                document.documentElement.classList.add('is-clipped');
+    
+                // Get the associated department-select element
+                
+               
+                let selectedDept
+                let selectedGroup
+                dept.addEventListener('change',()=>{
+                selectedDept = dept.value
+                if (selectedDept){
+                   fetch(`/group_dept_list?dept=${selectedDept}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            const data = result.data;
+                            group.innerHTML = ""; 
+                            data.forEach(item => {
+                                            const option = document.createElement('option');
+                                            option.value = item.id; // Use group.id as value
+                                            option.textContent = item.name; // Use group.name as text
+                                            group.appendChild(option);
+                                        });
+                        })
+                    }
+                })
+                group.addEventListener('change',()=>{
+                    selectedGroup = group.value
+                })
+                save.addEventListener('click',(e)=>{
+                    if (!selectedGroup) {
+                        alert("Please select a group");
+                        return; // Exit the function to prevent fetch request
+                    }
+                   
+                    e.preventDefault()
+                     fetch(`/assign_group?account=${account}&group=${selectedGroup}`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.json();
+                            })
+                            .then(result => {
+                                window.location.reload()
+                                })
+                    
+                })
+                        });
+                    });
+                }
+
+// Close modal
+    if (modalCloseElements.length > 0) {
+        modalCloseElements.forEach(el => {
+            el.addEventListener('click', e => {
+                e.currentTarget.closest('.modal').classList.remove('is-active');
+                document.documentElement.classList.remove('is-clipped');
+                
+            });
+        });
+    }
+   
+</script>

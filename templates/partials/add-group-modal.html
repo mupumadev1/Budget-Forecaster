@@ -1,0 +1,31 @@
+<div id="add-group-modal" class="modal">
+    <div class="modal-background jb-modal-close"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Add group</p>
+            <button class="delete jb-modal-close" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form>
+            <div class="form-row">
+                <label>
+                    <input name="account" id="new_group" class="inout is-small" value="">
+                </label>
+                <label>
+                    <select>
+                        <option></option>
+                    </select>
+                </label>
+               
+                <button type="submit">save</button>
+            </div>
+            </form>
+            
+        </section>
+        <footer class="modal-card-foot">
+            <a class="button jb-modal-close is-small" data-target="assign-group-modal">Cancel</a>
+            <a href="{% url 'budgets:report-capex'  %}" class="button is-info is-small "><span>Download<i class="mdi mdi-file-download"></i></span></a>
+        </footer>
+    </div>
+    <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
+</div>

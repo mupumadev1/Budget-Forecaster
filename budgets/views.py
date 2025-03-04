@@ -1,36 +1,46 @@
+import io
 import json
 from calendar import calendar
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, time
 from decimal import Decimal
 from functools import reduce
 from operator import or_
 from time import sleep
 
+import openpyxl
+import pandas as pd
+import xlsxwriter
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.hashers import check_password
+
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Sum, F, Q, Subquery, OuterRef
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render, redirect, get_object_or_404
-from openpyxl.styles import colors
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from openpyxl.styles import colors, Font
+from openpyxl.utils.cell import get_column_letter
 from openpyxl.workbook import Workbook
 from pandas import DataFrame
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from BudgetForecaster import settings
 from budgets.forms import BudgetEditForm, UserCreate
 from budgets.models import BudgetLines, Users, Glafs, Glpjd, BudgetComments, BudgetStatus, BudgetAssumptions, \
     BudgetTotals, \
     Currency, BudgetLinesLog, Glamf, BudgetVariations, Department, Enebd, Enrqnl, Poporl, Accounts, Poporh1, Enebh, \
-    ChangeLog
+    ChangeLog, FinancialYear, Group, BudgetLinesLogVariations
 
 
-def netperd_in_quarter(quarter):
+def fnetperd_in_quarter(quarter):
     quarter = int(quarter)
     if quarter == 1:
         return ['netperd1', 'netperd2', 'netperd3']
@@ -155,25 +165,26 @@ def get_actual_amounts(obj, current_q):
     :return: actual_data
     """
     actual_data = []
+    year = FinancialYear.objects.get(is_active=True)
 
     if 'netperd' in current_q:
         ranges = {
-            'netperd1': 'audtdate__gte=20240101,audtdate__lte=20240131',
-            'netperd2': 'audtdate__gte=20240201,audtdate__lte=20240229',
-            'netperd3': 'audtdate__gte=20240301,audtdate__lte=20240331',
-            'netperd4': 'audtdate__gte=20240401,audtdate__lte=20240430',
-            'netperd5': 'audtdate__gte=20240501,audtdate__lte=20240531',
-            'netperd6': 'audtdate__gte=20240601,audtdate__lte=20240630',
-            'netperd7': 'audtdate__gte=20240701,audtdate__lte=20240731',
-            'netperd8': 'audtdate__gte=20240801,audtdate__lte=20240831',
-            'netperd9': 'audtdate__gte=20240901,audtdate__lte=20240930',
-            'netperd10': 'audtdate__gte=20241001,audtdate__lte=20241031',
-            'netperd11': 'audtdate__gte=20241101,audtdate__lte=20241130',
-            'netperd12': 'audtdate__gte=20241201,audtdate__lte=20241231',
+            'netperd1': f'audtdate__gte={year.year}0101,audtdate__lte={year.year}0131',
+            'netperd2': f'audtdate__gte={year.year}0201,audtdate__lte={year.year}0229',
+            'netperd3': f'audtdate__gte={year.year}0301,audtdate__lte={year.year}0331',
+            'netperd4': f'audtdate__gte={year.year}0401,audtdate__lte={year.year}0430',
+            'netperd5': f'audtdate__gte={year.year}0501,audtdate__lte={year.year}0531',
+            'netperd6': f'audtdate__gte={year.year}0601,audtdate__lte={year.year}0630',
+            'netperd7': f'audtdate__gte={year.year}0701,audtdate__lte={year.year}0731',
+            'netperd8': f'audtdate__gte={year.year}0801,audtdate__lte={year.year}0831',
+            'netperd9': f'audtdate__gte={year.year}0901,audtdate__lte={year.year}0930',
+            'netperd10': f'audtdate__gte={year.year}1001,audtdate__lte={year.year}1031',
+            'netperd11': f'audtdate__gte={year.year}1101,audtdate__lte={year.year}1130',
+            'netperd12': f'audtdate__gte={year.year}1201,audtdate__lte={year.year}1231',
         }
         if obj:
             start_date, end_date = ranges[current_q].split(',')
-            start_date = 20240101
+            start_date = f'{year.year}0101'
             end_date = int(end_date.split('=')[1])
             acctids = obj
 
@@ -181,7 +192,7 @@ def get_actual_amounts(obj, current_q):
                 acctid__icontains=acctids,
                 audtdate__gte=start_date,
                 audtdate__lte=end_date
-            ).values('jnldtldesc', 'jnldtlref', 'acctid', 'audtdate', 'transamt')
+            ).exclude(transamt=0).values('jnldtldesc', 'jnldtlref', 'acctid', 'audtdate', 'transamt')
 
             for expense in actual_transactions:
                 date_obj = datetime.strptime(str(expense['audtdate']), '%Y%m%d')
@@ -200,18 +211,18 @@ def get_actual_amounts(obj, current_q):
 
     else:
         ranges = {
-            '1': 'audtdate__gte=20240101,audtdate__lte=20240331',
+            '1': f'audtdate__gte={year.year}0101,audtdate__lte={year.year}0331',
 
-            '2': 'audtdate__gte=20240401,audtdate__lte=20240630',
+            '2': f'audtdate__gte={year.year}0401,audtdate__lte={year.year}0630',
 
-            '3': 'audtdate__gte=20240701,audtdate__lte=20240930',
+            '3': f'audtdate__gte={year.year}0701,audtdate__lte={year.year}0930',
 
-            '4': 'audtdate__gte=20241001,audtdate__lte=20241231',
+            '4': f'audtdate__gte={year.year}1001,audtdate__lte={year.year}1231',
 
         }
         if obj:
             start_date, end_date = ranges[current_q].split(',')
-            start_date = 20240101
+            start_date = f'{year.year}0101'
             end_date = int(end_date.split('=')[1])
             acctids = obj
 
@@ -219,7 +230,7 @@ def get_actual_amounts(obj, current_q):
                 acctid__icontains=acctids,
                 audtdate__gte=start_date,
                 audtdate__lte=end_date
-            ).values('jnldtldesc', 'jnldtlref', 'acctid', 'audtdate', 'transamt')
+            ).exclude(transamt=0).values('jnldtldesc', 'jnldtlref', 'acctid', 'audtdate', 'transamt')
 
             for expense in actual_transactions:
                 date_obj = datetime.strptime(str(expense['audtdate']), '%Y%m%d')
@@ -244,25 +255,27 @@ def get_pending_amounts(obj, current_q):
     :param netperd:
     :return: pending_data
     """
+    year = FinancialYear.objects.get(is_active=True)
+
     if 'netperd' in current_q:
         ranges = {
-            'netperd1': 'audtdate__gte=20240101,audtdate__lte=20240131',
-            'netperd2': 'audtdate__gte=20240201,audtdate__lte=20240229',
-            'netperd3': 'audtdate__gte=20240301,audtdate__lte=20240331',
-            'netperd4': 'audtdate__gte=20240401,audtdate__lte=20240430',
-            'netperd5': 'audtdate__gte=20240501,audtdate__lte=20240531',
-            'netperd6': 'audtdate__gte=20240601,audtdate__lte=20240630',
-            'netperd7': 'audtdate__gte=20240701,audtdate__lte=20240731',
-            'netperd8': 'audtdate__gte=20240801,audtdate__lte=20240831',
-            'netperd9': 'audtdate__gte=20240901,audtdate__lte=20240930',
-            'netperd10': 'audtdate__gte=20241001,audtdate__lte=20241031',
-            'netperd11': 'audtdate__gte=20241101,audtdate__lte=20241130',
-            'netperd12': 'audtdate__gte=20241201,audtdate__lte=20241231',
+            'netperd1': f'audtdate__gte={year.year}0101,audtdate__lte={year.year}0131',
+            'netperd2': f'audtdate__gte={year.year}0201,audtdate__lte={year.year}0229',
+            'netperd3': f'audtdate__gte={year.year}0301,audtdate__lte={year.year}0331',
+            'netperd4': f'audtdate__gte={year.year}0401,audtdate__lte={year.year}0430',
+            'netperd5': f'audtdate__gte={year.year}0501,audtdate__lte={year.year}0531',
+            'netperd6': f'audtdate__gte={year.year}0601,audtdate__lte={year.year}0630',
+            'netperd7': f'audtdate__gte={year.year}0701,audtdate__lte={year.year}0731',
+            'netperd8': f'audtdate__gte={year.year}0801,audtdate__lte={year.year}0831',
+            'netperd9': f'audtdate__gte={year.year}0901,audtdate__lte={year.year}0930',
+            'netperd10': f'audtdate__gte={year.year}1001,audtdate__lte={year.year}1031',
+            'netperd11': f'audtdate__gte={year.year}1101,audtdate__lte={year.year}1130',
+            'netperd12': f'audtdate__gte={year.year}1201,audtdate__lte={year.year}1231',
         }
         pending_data = []
         if obj:
             start_date, end_date = ranges[current_q].split(',')
-            start_date = 20240101
+            start_date = int(year.year + '0101')
             end_date = int(end_date.split('=')[1])
             acctids = obj
 
@@ -270,8 +283,9 @@ def get_pending_amounts(obj, current_q):
                 idglacct__icontains=acctids,
                 status=1,
                 audtdate__gte=start_date,
-                audtdate__lte=end_date
-            ).values('amtlinet', 'textdesc', 'idglacct', 'audtdate', 'cntbtch')
+                audtdate__lte=end_date,
+
+            ).exclude(amtlinet=0).values('amtlinet', 'textdesc', 'idglacct', 'audtdate', 'cntbtch')
             pending_expenses_numbers = Enebh.objects.using('sql_server').filter(
                 cntbtch__in=pending_expenses.values_list('cntbtch', flat=True)
             ).values('idexpst', 'cntbtch')
@@ -294,8 +308,9 @@ def get_pending_amounts(obj, current_q):
                 fmtglacct__icontains=acctids,
                 status=1,
                 audtdate__gte=start_date,
-                audtdate__lte=end_date
-            ).values('itemdesc', 'extended', 'fmtglacct', 'audtdate', 'rqnnumber')
+                audtdate__lte=end_date,
+
+            ).exclude(extended = 0).values('itemdesc', 'extended', 'fmtglacct', 'audtdate', 'rqnnumber')
 
             for req in pending_requisition:
                 date_obj = datetime.strptime(str(req['audtdate']), '%Y%m%d')
@@ -315,8 +330,9 @@ def get_pending_amounts(obj, current_q):
                 glnonstkcr__icontains=acctids,
                 completion=1,
                 audtdate__gte=start_date,
-                audtdate__lte=end_date
-            ).values('itemdesc', 'extended', 'glnonstkcr', 'audtdate', 'porhseq')
+                audtdate__lte=end_date,
+
+            ).exclude(extended =0).values('itemdesc', 'extended', 'glnonstkcr', 'audtdate', 'porhseq')
             pending_purchase_order_header = Poporh1.objects.using('sql_server').filter(
                 porhseq__in=pending_purchase_order.values_list('porhseq', flat=True)
             ).values('ponumber', 'porhseq')
@@ -339,19 +355,19 @@ def get_pending_amounts(obj, current_q):
 
     else:
         ranges = {
-            '1': 'audtdate__gte=20240101,audtdate__lte=20240331',
+            '1': f'audtdate__gte={year.year}0101,audtdate__lte={year.year}0331',
 
-            '2': 'audtdate__gte=20240401,audtdate__lte=20240630',
+            '2': f'audtdate__gte={year.year}0401,audtdate__lte={year.year}0630',
 
-            '3': 'audtdate__gte=20240701,audtdate__lte=20240930',
+            '3': f'audtdate__gte={year.year}0701,audtdate__lte={year.year}0930',
 
-            '4': 'audtdate__gte=20241001,audtdate__lte=20241231',
+            '4': f'audtdate__gte={year.year}1001,audtdate__lte={year.year}1231',
 
         }
         pending_data = []
         if obj:
             start_date, end_date = ranges[current_q].split(',')
-            start_date = 20240101
+            start_date = int(year.year + '0101')
             end_date = int(end_date.split('=')[1])
             acctids = obj
 
@@ -359,8 +375,9 @@ def get_pending_amounts(obj, current_q):
                 idglacct__icontains=acctids,
                 status=1,
                 audtdate__gte=start_date,
-                audtdate__lte=end_date
-            ).values('amtlinet', 'textdesc', 'idglacct', 'audtdate', 'cntbtch')
+                audtdate__lte=end_date,
+
+            ).exclude(amtlinet=0).values('amtlinet', 'textdesc', 'idglacct', 'audtdate', 'cntbtch')
             pending_expenses_numbers = Enebh.objects.using('sql_server').filter(
                 cntbtch__in=pending_expenses.values_list('cntbtch', flat=True)
             ).values('idexpst', 'cntbtch')
@@ -383,8 +400,9 @@ def get_pending_amounts(obj, current_q):
                 fmtglacct__icontains=acctids,
                 status=1,
                 audtdate__gte=start_date,
-                audtdate__lte=end_date
-            ).values('itemdesc', 'extended', 'fmtglacct', 'audtdate', 'rqnnumber')
+                audtdate__lte=end_date,
+
+            ).exclude(extended =0).values('itemdesc', 'extended', 'fmtglacct', 'audtdate', 'rqnnumber')
 
             for req in pending_requisition:
                 date_obj = datetime.strptime(str(req['audtdate']), '%Y%m%d')
@@ -404,8 +422,9 @@ def get_pending_amounts(obj, current_q):
                 glnonstkcr__icontains=acctids,
                 completion=1,
                 audtdate__gte=start_date,
-                audtdate__lte=end_date
-            ).values('itemdesc', 'extended', 'glnonstkcr', 'audtdate', 'porhseq')
+                audtdate__lte=end_date,
+
+            ).exclude(extended=0).values('itemdesc', 'extended', 'glnonstkcr', 'audtdate', 'porhseq')
             pending_purchase_order_header = Poporh1.objects.using('sql_server').filter(
                 porhseq__in=pending_purchase_order.values_list('porhseq', flat=True)
             ).values('ponumber', 'porhseq')
@@ -426,7 +445,12 @@ def get_pending_amounts(obj, current_q):
 
         return pending_data
 
-
+def format_value(value):
+    """Helper function to format numbers to comma-separated string with two decimals."""
+    try:
+        return "{:,.2f}".format(Decimal(value))
+    except (TypeError, ValueError):
+        return value
 def period_aggregate_singular(obj, obj2, netperd):
     """
 
@@ -435,6 +459,8 @@ def period_aggregate_singular(obj, obj2, netperd):
     :param netperd: the period from which our values should come
     :return period_values_dict
     """
+    year = FinancialYear.objects.get(is_active=True)
+
     period_values_dict = {
         'total': 0,
         'total_actual': 0,
@@ -446,18 +472,18 @@ def period_aggregate_singular(obj, obj2, netperd):
         'available_year_total': 0
     }
     ranges = {
-        'netperd1': 'audtdate__gte=20240101,audtdate__lte=20240131',
-        'netperd2': 'audtdate__gte=20240201,audtdate__lte=20240229',
-        'netperd3': 'audtdate__gte=20240301,audtdate__lte=20240331',
-        'netperd4': 'audtdate__gte=20240401,audtdate__lte=20240430',
-        'netperd5': 'audtdate__gte=20240501,audtdate__lte=20240531',
-        'netperd6': 'audtdate__gte=20240601,audtdate__lte=20240630',
-        'netperd7': 'audtdate__gte=20240701,audtdate__lte=20240731',
-        'netperd8': 'audtdate__gte=20240801,audtdate__lte=20240831',
-        'netperd9': 'audtdate__gte=20240901,audtdate__lte=20240930',
-        'netperd10': 'audtdate__gte=20241001,audtdate__lte=20241031',
-        'netperd11': 'audtdate__gte=20241101,audtdate__lte=20241130',
-        'netperd12': 'audtdate__gte=20241201,audtdate__lte=20241231',
+        'netperd1': f'audtdate__gte={year.year}0101,audtdate__lte={year.year}0131',
+        'netperd2': f'audtdate__gte={year.year}0201,audtdate__lte={year.year}0229',
+        'netperd3': f'audtdate__gte={year.year}0301,audtdate__lte={year.year}0331',
+        'netperd4': f'audtdate__gte={year.year}0401,audtdate__lte={year.year}0430',
+        'netperd5': f'audtdate__gte={year.year}0501,audtdate__lte={year.year}0531',
+        'netperd6': f'audtdate__gte={year.year}0601,audtdate__lte={year.year}0630',
+        'netperd7': f'audtdate__gte={year.year}0701,audtdate__lte={year.year}0731',
+        'netperd8': f'audtdate__gte={year.year}0801,audtdate__lte={year.year}0831',
+        'netperd9': f'audtdate__gte={year.year}0901,audtdate__lte={year.year}0930',
+        'netperd10': f'audtdate__gte={year.year}1001,audtdate__lte={year.year}1031',
+        'netperd11': f'audtdate__gte={year.year}1101,audtdate__lte={year.year}1130',
+        'netperd12': f'audtdate__gte={year.year}1201,audtdate__lte={year.year}1231',
     }
 
     if obj and obj2:
@@ -482,7 +508,7 @@ def period_aggregate_singular(obj, obj2, netperd):
         pending_expenses_all = Enebd.objects.using('sql_server').filter(
             idglacct__icontains=acctids,
             status=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
@@ -496,7 +522,7 @@ def period_aggregate_singular(obj, obj2, netperd):
         pending_requisition_all = Enrqnl.objects.using('sql_server').filter(
             fmtglacct__icontains=acctids,
             status=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
@@ -509,23 +535,25 @@ def period_aggregate_singular(obj, obj2, netperd):
         pending_purchase_order_all = Poporl.objects.using('sql_server').filter(
             glnonstkcr__icontains=acctids,
             completion=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_total = pending_expenses + pending_requisition + pending_purchase_order
+        print(pending_total)
         pending_year_total = pending_expenses_all + pending_requisition_all + pending_purchase_order_all
         available_year = round(year_total, 2) - round(pending_year_total, 2)
         available = round(period_total, 2) - round(pending_total, 2)
-        period_values_dict['pending'] = "{:,.2f}".format(pending_total)
-        period_values_dict['pending_year_total'] = "{:,.2f}".format(pending_year_total)
-        period_values_dict['available'] = "{:,.2f}".format(available)
-        period_values_dict['available_year_total'] = "{:,.2f}".format(available_year)
-        period_values_dict['total'] = "{:,.2f}".format(period_total)
-        period_values_dict['year_total'] = "{:,.2f}".format(year_total)
+        period_values_dict['pending'] = pending_total
+        period_values_dict['pending_year_total'] = pending_year_total
+        period_values_dict['available'] = available
+        period_values_dict['available_year_total'] = available_year
+        period_values_dict['total'] = period_total
+        period_values_dict['year_total'] = year_total
         acctidspec = obj['account_id']
-        budget = Glafs.objects.using('sql_server').filter(acctid__icontains=acctidspec, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                          fscsyr=2024).all()
+        budget = Glafs.objects.using('sql_server').filter(acctid__icontains=acctidspec, fscsdsg='A', fscscurn='ZMW',
+                                                          curntype='F',
+                                                          fscsyr=year.year).all()
         budget_specific = budget.values(netperd, 'acctid')
         for obj, obj2 in zip(budget_specific, budget):
             if obj and obj2:
@@ -534,21 +562,22 @@ def period_aggregate_singular(obj, obj2, netperd):
                 year_total = sum(
                     getattr(obj2, f"netperd{i}", 0) for i in range(1, int(netperd.replace('netperd', '')) + 1))
 
-                period_values_dict['total_actual'] = "{:,.2f}".format(period_total)
-                period_values_dict['year_total_actual'] = "{:,.2f}".format(year_total)
-        total_actual = Decimal(period_values_dict['total_actual'].replace(',', ''))
-        year_total_actual = Decimal(period_values_dict['year_total_actual'].replace(',', ''))
-        pending_total = Decimal(period_values_dict['pending'].replace(',', ''))
-        year_pending_total = Decimal(period_values_dict['pending_year_total'].replace(',', ''))
+                period_values_dict['total_actual'] = period_total
+                period_values_dict['year_total_actual'] = year_total
+        total_actual = Decimal(period_values_dict['total_actual'])
+        year_total_actual = Decimal(period_values_dict['year_total_actual'])
+        pending_total = Decimal(period_values_dict['pending'])
+        year_pending_total = Decimal(period_values_dict['pending_year_total'])
 
-        available = round(Decimal(period_values_dict['total'].replace(',', '')), 2) - round(total_actual, 2) - round(
+        available = round(Decimal(period_values_dict['total']), 2) - round(total_actual, 2) - round(
             pending_total, 2)
-        year_available = round(Decimal(period_values_dict['year_total'].replace(',', '')), 2) - round(year_total_actual,
+        year_available = round(Decimal(period_values_dict['year_total']), 2) - round(year_total_actual,
                                                                                                       2) - round(
             year_pending_total, 2)
-        period_values_dict['available'] = "{:,.2f}".format(available)
-        period_values_dict['available_year_total'] = "{:,.2f}".format(year_available)
-
+        period_values_dict['total_actual']
+        period_values_dict['available'] = available
+        period_values_dict['available_year_total'] = year_available
+    period_values_dict = {k: format_value(v) for k, v in period_values_dict.items()}
     return period_values_dict
 
 
@@ -560,6 +589,8 @@ def quarter_aggregate_singular(obj, obj2, current_q):
     :param current_q:
     :return:
     """
+    year = FinancialYear.objects.get(is_active=True)
+
     current_q = int(current_q)
     period_values_dict = {
         'total': Decimal('0.00'),
@@ -572,13 +603,13 @@ def quarter_aggregate_singular(obj, obj2, current_q):
         'available_year_total': Decimal('0.00')
     }
     ranges = {
-        1: 'audtdate__gte=20240101,audtdate__lte=20240331',
+        1: f'audtdate__gte={year.year}0101,audtdate__lte={year.year}0331',
 
-        2: 'audtdate__gte=20240401,audtdate__lte=20240630',
+        2: f'audtdate__gte={year.year}0401,audtdate__lte={year.year}0630',
 
-        3: 'audtdate__gte=20240701,audtdate__lte=20240930',
+        3: f'audtdate__gte={year.year}0701,audtdate__lte={year.year}0930',
 
-        4: 'audtdate__gte=20241001,audtdate__lte=20241231',
+        4: f'audtdate__gte={year.year}1001,audtdate__lte={year.year}1231',
 
     }
     ytd_ranges = {
@@ -614,7 +645,7 @@ def quarter_aggregate_singular(obj, obj2, current_q):
         pending_expenses_all = Enebd.objects.using('sql_server').filter(
             idglacct__icontains__in=acctids,
             status=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
@@ -628,7 +659,7 @@ def quarter_aggregate_singular(obj, obj2, current_q):
         pending_requisition_all = Enrqnl.objects.using('sql_server').filter(
             glacct__icontains__in=acctids,
             status=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
@@ -642,7 +673,7 @@ def quarter_aggregate_singular(obj, obj2, current_q):
         pending_purchase_order_all = Poporl.objects.using('sql_server').filter(
             glnonstkcr__icontains__in=acctids,
             completion=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
@@ -656,7 +687,8 @@ def quarter_aggregate_singular(obj, obj2, current_q):
         period_values_dict['available_year_total'] = "{:,.2f}".format(available_year)
         period_values_dict['total'] = "{:,.2f}".format(quarter_total)
         period_values_dict['year_total'] = "{:,.2f}".format(year_total)
-        budget = Glafs.objects.using('sql_server').filter(acctid=acctids, fscsdsg='A', fscscurn ='ZMW' , curntype='F', fscsyr=2024).all()
+        budget = Glafs.objects.using('sql_server').filter(acctid=acctids, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                                                          fscsyr=year.year).all()
         budget_specific = budget.values(*net_perds, 'acctid')
         for obj, obj2 in zip(budget_specific, budget):
             if obj and obj2:
@@ -673,7 +705,7 @@ def quarter_aggregate_singular(obj, obj2, current_q):
 
         available = round(Decimal(period_values_dict['total'].replace(',', '')), 2) - round(total_actual, 2) - round(
             pending_total, 2)
-        year_available = round(Decimal(period_values_dict['available_year_total'].replace(',', '')), 2) - round(
+        year_available = round(Decimal(period_values_dict['year_total'].replace(',', '')), 2) - round(
             year_total_actual,
             2) - round(
             year_pending_total, 2)
@@ -694,6 +726,7 @@ def quarter_aggregate(queryset, queryset2, queryset3, queryset4, current_q, dept
     :param dept_id:
     :return: period_values_dict
     """
+    year = FinancialYear.objects.get(is_active=True)
     period_values_dict = {
         'total': Decimal('0.00'),
         'total_actual': Decimal('0.00'),
@@ -711,13 +744,13 @@ def quarter_aggregate(queryset, queryset2, queryset3, queryset4, current_q, dept
         4: 13
     }
     ranges = {
-        1: 'audtdate__gte=20240101,audtdate__lte=20240331',
+        1: f'audtdate__gte={year.year}0101,audtdate__lte={year.year}0331',
 
-        2: 'audtdate__gte=20240401,audtdate__lte=20240630',
+        2: f'audtdate__gte={year.year}0401,audtdate__lte={year.year}0630',
 
-        3: 'audtdate__gte=20240701,audtdate__lte=20240930',
+        3: f'audtdate__gte={year.year}0701,audtdate__lte={year.year}0930',
 
-        4: 'audtdate__gte=20241001,audtdate__lte=20241231',
+        4: f'audtdate__gte={year.year}1001,audtdate__lte={year.year}1231',
 
     }
 
@@ -749,7 +782,7 @@ def quarter_aggregate(queryset, queryset2, queryset3, queryset4, current_q, dept
         pending_expenses_all = Enebd.objects.using('sql_server').filter(
             q1,
             status=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
@@ -763,7 +796,7 @@ def quarter_aggregate(queryset, queryset2, queryset3, queryset4, current_q, dept
         pending_requisition_all = Enrqnl.objects.using('sql_server').filter(
             q2,
             status=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
@@ -777,7 +810,7 @@ def quarter_aggregate(queryset, queryset2, queryset3, queryset4, current_q, dept
         pending_purchase_order_all = Poporl.objects.using('sql_server').filter(
             q3,
             completion=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
@@ -831,6 +864,8 @@ def netperd_aggregate(queryset, queryset2, queryset3, queryset4, netperd, dept_i
     Returns:
     - Dictionary containing calculated values
     """
+    year = FinancialYear.objects.get(is_active=True)
+
     period_values_dict = {
         'total': Decimal('0.00'),
         'total_actual': Decimal('0.00'),
@@ -843,24 +878,23 @@ def netperd_aggregate(queryset, queryset2, queryset3, queryset4, netperd, dept_i
     }
 
     ranges = {
-        'netperd1': 'audtdate__gte=20240101,audtdate__lte=20240131',
-        'netperd2': 'audtdate__gte=20240201,audtdate__lte=20240229',
-        'netperd3': 'audtdate__gte=20240301,audtdate__lte=20240331',
-        'netperd4': 'audtdate__gte=20240401,audtdate__lte=20240430',
-        'netperd5': 'audtdate__gte=20240501,audtdate__lte=20240531',
-        'netperd6': 'audtdate__gte=20240601,audtdate__lte=20240630',
-        'netperd7': 'audtdate__gte=20240701,audtdate__lte=20240731',
-        'netperd8': 'audtdate__gte=20240801,audtdate__lte=20240831',
-        'netperd9': 'audtdate__gte=20240901,audtdate__lte=20240930',
-        'netperd10': 'audtdate__gte=20241001,audtdate__lte=20241031',
-        'netperd11': 'audtdate__gte=20241101,audtdate__lte=20241130',
-        'netperd12': 'audtdate__gte=20241201,audtdate__lte=20241231',
+        'netperd1': f'audtdate__gte={year.year}0101,audtdate__lte={year.year}0131',
+        'netperd2': f'audtdate__gte={year.year}0201,audtdate__lte={year.year}0229',
+        'netperd3': f'audtdate__gte={year.year}0301,audtdate__lte={year.year}0331',
+        'netperd4': f'audtdate__gte={year.year}0401,audtdate__lte={year.year}0430',
+        'netperd5': f'audtdate__gte={year.year}0501,audtdate__lte={year.year}0531',
+        'netperd6': f'audtdate__gte={year.year}0601,audtdate__lte={year.year}0630',
+        'netperd7': f'audtdate__gte={year.year}0701,audtdate__lte={year.year}0731',
+        'netperd8': f'audtdate__gte={year.year}0801,audtdate__lte={year.year}0831',
+        'netperd9': f'audtdate__gte={year.year}0901,audtdate__lte={year.year}0930',
+        'netperd10': f'audtdate__gte={year.year}1001,audtdate__lte={year.year}1031',
+        'netperd11': f'audtdate__gte={year.year}1101,audtdate__lte={year.year}1130',
+        'netperd12': f'audtdate__gte={year.year}1201,audtdate__lte={year.year}1231',
     }
 
     netperd_fields = [f"netperd{i}" for i in range(1, int(netperd.replace('netperd', '')) + 1)]
 
     if queryset and queryset2:
-        
         period_aggregation = queryset.aggregate(Sum(netperd)).get(f'{netperd}__sum', 0)
         total_period_values_aggregations = {period: Sum(period) for period in netperd_fields}
         total_period_values_sum = queryset2.aggregate(**total_period_values_aggregations)
@@ -880,11 +914,11 @@ def netperd_aggregate(queryset, queryset2, queryset3, queryset4, netperd, dept_i
             audtdate__gte=start_date,
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
-
+        print(pending_expenses)
         pending_expenses_all = Enebd.objects.using('sql_server').filter(
             q1,
             status=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
@@ -894,11 +928,11 @@ def netperd_aggregate(queryset, queryset2, queryset3, queryset4, netperd, dept_i
             audtdate__gte=start_date,
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
-
+        print(pending_requisition)
         pending_requisition_all = Enrqnl.objects.using('sql_server').filter(
             q2,
             status=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
@@ -908,11 +942,11 @@ def netperd_aggregate(queryset, queryset2, queryset3, queryset4, netperd, dept_i
             audtdate__gte=start_date,
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
-
+        print(pending_purchase_order)
         pending_purchase_order_all = Poporl.objects.using('sql_server').filter(
             q3,
             completion=1,
-            audtdate__gte=20240101,
+            audtdate__gte=int(year.year + '0101'),
             audtdate__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
@@ -948,14 +982,21 @@ def netperd_aggregate(queryset, queryset2, queryset3, queryset4, netperd, dept_i
 
     available = round(Decimal(period_values_dict['total']), 2) - round(total_actual, 2) - round(
         pending_total, 2)
-    year_available = round(Decimal(period_values_dict['available_year_total']), 2) - round(year_total_actual,
-                                                                                           2) - round(
+    year_available = round(Decimal(period_values_dict['year_total']), 2) - round(year_total_actual,
+                                                                                    2) - round(
         year_pending_total, 2)
     period_values_dict['available'] = "{:,.2f}".format(available)
     period_values_dict['available_year_total'] = "{:,.2f}".format(year_available)
     return period_values_dict
 
-
+def process_department(args):
+                dept_name, dept_id, queryset, queryset2, queryset3, queryset4, current_q = args
+                values = netperd_aggregate(queryset, queryset3, queryset2, queryset4, current_q, dept_id)
+                return {
+                    'acctdesc': dept_name,
+                    **values,
+                    'id': dept_id
+                }
 def q1_values(request):
     """
     used to display budget,actual and pending information to budget managers i.e users with role 002
@@ -963,6 +1004,8 @@ def q1_values(request):
     :return: html template
     """
     if request.user.is_authenticated:
+        now = datetime.now()
+        year = FinancialYear.objects.get(is_active=True)
         budget_set = 'Budget 1'  # necessary because there can be upto 5 budget variations and end user has choice among them
         if 'budget_set' in request.GET:
             budget_set = request.GET['budget_set']
@@ -971,21 +1014,25 @@ def q1_values(request):
         capex_netper_sum = Decimal('0')
         opex_netper_sum = Decimal('0')
         department_conditions = Q()
-        for department_id in range(1, 17):  # Assuming departments IDs range from 1 to 12
+        for department_id in range(1, 15):  # Assuming departments IDs range from 1 to 12
             department_conditions |= Q(department_id=department_id)
         budget_totals_all = BudgetTotals.objects.filter(
-            Q(posted=False) & department_conditions & Q(budget_set=budget_set)  # Base budget totals queryset
+            Q(posted=False) & department_conditions & Q(budget_set=budget_set) & Q(year=year.year)
+            # Base budget totals queryset
         ).order_by('-department_id', '-account_id')
         capex_budget_totals_all = budget_totals_all.filter(department_id=13)
         opex_budget_totals_all = budget_totals_all.exclude(department_id=13)
-        opex_total_sum = budget_totals_all.exclude(department_id__in=[13,15,16]).aggregate(total_sum=Sum('total'))[
+        opex_total_sum = budget_totals_all.exclude(department_id__in=[13, 15, 16]).aggregate(total_sum=Sum('total'))[
                              'total_sum'] or 0
+
         capex_total_sum = budget_totals_all.filter(department_id=13).aggregate(total_sum=Sum('total'))['total_sum'] or 0
 
         opex_actual_total = Glafs.objects.using('sql_server').filter(
-            acctid__in=[obj.account.acctid for obj in opex_budget_totals_all], fscsdsg='A', fscscurn ='ZMW', curntype='F', fscsyr=2024)
+            acctid__in=[obj.account.acctid for obj in opex_budget_totals_all], fscsdsg='A', fscscurn='ZMW',
+            curntype='F', fscsyr=year.year)
         capex_actual_total = Glafs.objects.using('sql_server').filter(
-            acctid__in=[obj.account.acctid for obj in capex_budget_totals_all], fscsdsg='A', fscscurn ='ZMW', curntype='F', fscsyr=2024)
+            acctid__in=[obj.account.acctid for obj in capex_budget_totals_all], fscsdsg='A', fscscurn='ZMW',
+            curntype='F', fscsyr=year.year)
 
         for total in opex_actual_total:
             opex_netper_sum += total.get_netper_sum()
@@ -998,8 +1045,9 @@ def q1_values(request):
             net_perds = [month for month in months_in_current_quarter]
             for net_perd in net_perds:
                 exclude_zero_perds |= Q(**{f"{net_perd}": 0})
-            budget_totals = BudgetTotals.objects.filter(Q(posted=False) & department_conditions & Q(budget_set=budget_set)
-                                                        ).order_by('-department_id', '-account_id').values(
+            budget_totals = BudgetTotals.objects.filter(
+                Q(posted=False) & department_conditions & Q(budget_set=budget_set) & Q(year=year.year)
+                ).order_by('-department_id', '-account_id').values(
                 *net_perds, 'account_id', 'account__acctdesc', 'account__acctfmttd')
 
             acctIdsCeo = [obj['account_id'] for obj in budget_totals.filter(department_id=1)]
@@ -1019,63 +1067,78 @@ def q1_values(request):
                                    budget_totals.filter(department_id=14)]
 
             ceo_queryset = budget_totals.filter(department_id=1)
-            ceo_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsCeo, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                   fscsyr=2024).values(
+            ceo_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsCeo, fscsdsg='A', fscscurn='ZMW',
+                                                                   curntype='F',
+                                                                   fscsyr=year.year).values(
                 *net_perds,
                 'acctid')
             internal_audit_queryset = budget_totals.filter(department_id=2)
-            internal_audit_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIa, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                              curntype='F', fscsyr=2024).values(
+            internal_audit_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIa, fscsdsg='A',
+                                                                              fscscurn='ZMW',
+                                                                              curntype='F', fscsyr=year.year).values(
                 *net_perds, 'acctid')
             supply_chain_queryset = budget_totals.filter(department_id=3)
-            supply_chain_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsSc, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                            curntype='F', fscsyr=2024).values(
+            supply_chain_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsSc, fscsdsg='A',
+                                                                            fscscurn='ZMW',
+                                                                            curntype='F', fscsyr=year.year).values(
                 *net_perds, 'acctid')
             bds_queryset = budget_totals.filter(department_id=4)
-            bds_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsBds, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                   fscsyr=2024).values(
+            bds_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsBds, fscsdsg='A', fscscurn='ZMW',
+                                                                   curntype='F',
+                                                                   fscsyr=year.year).values(
                 *net_perds,
                 'acctid')
             public_relations_queryset = budget_totals.filter(department_id=5)
-            public_relations_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsPr, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                                curntype='F', fscsyr=2024).values(
+            public_relations_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsPr, fscsdsg='A',
+                                                                                fscscurn='ZMW',
+                                                                                curntype='F', fscsyr=year.year).values(
                 *net_perds, 'acctid')
             technical_queryset = budget_totals.filter(department_id=6)
-            technical_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsTech, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                         curntype='F', fscsyr=2024).values(
+            technical_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsTech, fscsdsg='A',
+                                                                         fscscurn='ZMW',
+                                                                         curntype='F', fscsyr=year.year).values(
                 *net_perds, 'acctid')
             information_systems_queryset = budget_totals.filter(department_id=7)
-            information_systems_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIs, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                                   curntype='F', fscsyr=2024).values(
+            information_systems_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIs, fscsdsg='A',
+                                                                                   fscscurn='ZMW',
+                                                                                   curntype='F',
+                                                                                   fscsyr=year.year).values(
                 *net_perds,
                 'acctid')
             legal_risk_queryset = budget_totals.filter(department_id=8)
-            legal_risk_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsLr, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                          curntype='F', fscsyr=2024).values(
+            legal_risk_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsLr, fscsdsg='A',
+                                                                          fscscurn='ZMW',
+                                                                          curntype='F', fscsyr=year.year).values(
                 *net_perds, 'acctid')
             human_capital_queryset = budget_totals.filter(department_id=9)
-            human_capital_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsHc, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                             curntype='F', fscsyr=2024).values(
+            human_capital_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsHc, fscsdsg='A',
+                                                                             fscscurn='ZMW',
+                                                                             curntype='F', fscsyr=year.year).values(
                 *net_perds, 'acctid')
             sales_marketing_queryset = budget_totals.filter(department_id=10)
-            sales_marketing_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsSm, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                               curntype='F', fscsyr=2024).values(
+            sales_marketing_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsSm, fscsdsg='A',
+                                                                               fscscurn='ZMW',
+                                                                               curntype='F', fscsyr=year.year).values(
                 *net_perds, 'acctid')
             admin_queryset = budget_totals.filter(department_id=11)
-            admin_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsAdmin, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                     fscsyr=2024).values(
+            admin_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsAdmin, fscsdsg='A',
+                                                                     fscscurn='ZMW', curntype='F',
+                                                                     fscsyr=year.year).values(
                 *net_perds, 'acctid')
             finance_queryset = budget_totals.filter(department_id=12)
-            finance_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsFin, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                       fscsyr=2024).values(
+            finance_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsFin, fscsdsg='A',
+                                                                       fscscurn='ZMW', curntype='F',
+                                                                       fscsyr=year.year).values(
                 *net_perds, 'acctid')
             asset_queryset = budget_totals.filter(department_id=13)
-            asset_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsAsset, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                     fscsyr=2024).values(
+            asset_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsAsset, fscsdsg='A',
+                                                                     fscscurn='ZMW', curntype='F',
+                                                                     fscsyr=year.year).values(
                 *net_perds, 'acctid')
             incometw_queryset = budget_totals.filter(department_id=14)
-            incometw_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIncomeTowers, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                        curntype='F', fscsyr=2024).values(
+            incometw_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIncomeTowers, fscsdsg='A',
+                                                                        fscscurn='ZMW',
+                                                                        curntype='F', fscsyr=year.year).values(
                 *net_perds, 'acctid')
 
             querysets = [
@@ -1097,10 +1160,11 @@ def q1_values(request):
 
             ]
             unit_totals = []
-
+            before = datetime.now()
             for dept_name, dept_id, queryset, queryset2 in querysets:
                 actuals = Glafs.objects.using('sql_server').filter(
-                    acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn ='ZMW' , curntype='F', fscsyr=2024)
+                    acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn='ZMW', curntype='F',
+                    fscsyr=year.year)
                 values = quarter_aggregate(queryset, budget_totals_all.filter(department_id=dept_id), queryset2,
                                            actuals, current_q, dept_id)
                 unit_totals.append(
@@ -1156,8 +1220,9 @@ def q1_values(request):
                        'ytd_actual_total': capex_ytd_total_actual,
                        'ytd_pending_total': capex_ytd_pending,
                        'ytd_available_total': capex_ytd_available,
-
+                        'year':year
                        }
+
             return render(request, 'index.html', context)
 
 
@@ -1167,8 +1232,9 @@ def q1_values(request):
             if 'period' in request.GET:
                 current_q = request.GET['period']
 
-            budget_totals = BudgetTotals.objects.filter(Q(posted=False) & department_conditions & Q(budget_set=budget_set)
-                                                        ).order_by('-department_id', '-account_id').values(
+            budget_totals = BudgetTotals.objects.filter(
+                Q(posted=False) & department_conditions & Q(budget_set=budget_set) & Q(year=year.year)
+                ).order_by('-department_id', '-account_id').values(
                 current_q, 'account_id', 'account__acctdesc', 'account__acctfmttd')
             acctIdsCeo = [obj['account_id'] for obj in budget_totals.filter(department_id=1)]
             acctIdsIa = [obj['account_id'] for obj in budget_totals.filter(department_id=2)]
@@ -1186,87 +1252,171 @@ def q1_values(request):
             acctIdsIncomeTowers = [obj['account_id'] for obj in budget_totals.filter(department_id=14)]
             exclude_filter = {f'{current_q}': 0}
             ceo_queryset = budget_totals.filter(department_id=1)
-            ceo_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsCeo, fscsdsg='A', fscscurn ='ZMW' , curntype='F',fscsyr=2024).values(current_q,'acctid')
+            ceo_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsCeo, fscsdsg='A', fscscurn='ZMW',
+                                                                   curntype='F', fscsyr=year.year).values(current_q,
+
+                                                                                                            'acctid')
+            ceo_ytd = budget_totals_all.filter(department_id=1)
+            ceo_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsCeo, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #Internal Audit
             internal_audit_queryset = budget_totals.filter(department_id=2)
-            internal_audit_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIa, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                              curntype='F', fscsyr=2024).values(
+            internal_audit_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIa, fscsdsg='A',
+                                                                              fscscurn='ZMW',
+                                                                              curntype='F', fscsyr=year.year).values(
                 current_q, 'acctid')
+            internal_audit_ytd =budget_totals_all.filter(department_id=2)
+            internal_audit_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsIa, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #supply chain
             supply_chain_queryset = budget_totals.filter(department_id=3)
-            supply_chain_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsSc, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                            curntype='F', fscsyr=2024).values(
+            supply_chain_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsSc, fscsdsg='A',
+                                                                            fscscurn='ZMW',
+                                                                            curntype='F', fscsyr=year.year).values(
                 current_q, 'acctid')
+            supply_chain_ytd =budget_totals_all.filter(department_id=3)
+            supply_chain_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsSc, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #bds
             bds_queryset = budget_totals.filter(department_id=4)
-            bds_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsBds, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                   fscsyr=2024).values(
+            bds_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsBds, fscsdsg='A', fscscurn='ZMW',
+                                                                   curntype='F',
+                                                                   fscsyr=year.year).values(
                 current_q,
                 'acctid')
+            bds_ytd =budget_totals_all.filter(department_id=4)
+            bds_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsBds, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #public relations
             public_relations_queryset = budget_totals.filter(department_id=5)
-            public_relations_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsPr,fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                                fscsyr=2024).values(
+            public_relations_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsPr, fscsdsg='A',
+                                                                                fscscurn='ZMW', curntype='F',
+                                                                                fscsyr=year.year).values(
                 current_q, 'acctid')
+            public_relations_ytd =budget_totals_all.filter(department_id=5)
+            public_relations_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsPr, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #tech
             technical_queryset = budget_totals.filter(department_id=6)
-            technical_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsTech, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                         curntype='F', fscsyr=2024).values(
+            technical_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsTech, fscsdsg='A',
+                                                                         fscscurn='ZMW',
+                                                                         curntype='F', fscsyr=year.year).values(
                 current_q, 'acctid')
+            technical_ytd = budget_totals_all.filter(department_id=6)
+            technical_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsTech, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #information systems
             information_systems_queryset = budget_totals.filter(department_id=7)
-            information_systems_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIs,fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                                   fscsyr=2024).values(current_q,
-                                                                                                       'acctid')
+            information_systems_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIs, fscsdsg='A',
+                                                                                   fscscurn='ZMW', curntype='F',
+                                                                                   fscsyr=year.year).values(current_q,
+                                                                                                            'acctid')
+            information_systems_ytd = budget_totals_all.filter(department_id=7)
+            information_systems_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsIs, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #legal_risk
             legal_risk_queryset = budget_totals.filter(department_id=8)
-            legal_risk_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsLr, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                          curntype='F', fscsyr=2024).values(
+            legal_risk_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsLr, fscsdsg='A',
+                                                                          fscscurn='ZMW',
+                                                                          curntype='F', fscsyr=year.year).values(
                 current_q, 'acctid')
+            legal_risk_ytd =budget_totals_all.filter(department_id=8)
+            legal_risk_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsLr, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #Human_capital
             human_capital_queryset = budget_totals.filter(department_id=9)
-            human_capital_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsHc, fscsdsg='A', fscscurn ='ZMW' ,
-                                                                             curntype='F', fscsyr=2024).values(
+            human_capital_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsHc, fscsdsg='A',
+                                                                             fscscurn='ZMW',
+                                                                             curntype='F', fscsyr=year.year).values(
                 current_q, 'acctid')
+            human_capital_ytd = budget_totals_all.filter(department_id=9)
+            human_capital_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsHc, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #sales_marketing
             sales_marketing_queryset = budget_totals.filter(department_id=10)
-            sales_marketing_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsSm,fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                               fscsyr=2024).values(
+            sales_marketing_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsSm, fscsdsg='A',
+                                                                               fscscurn='ZMW', curntype='F',
+                                                                               fscsyr=year.year).values(
                 current_q, 'acctid')
+            sales_marketing_ytd =budget_totals_all.filter(department_id=10)
+            sales_marketing_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsSm, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #admin
             admin_queryset = budget_totals.filter(department_id=11)
-            admin_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsAdmin, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                     fscsyr=2024).values(
+            admin_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsAdmin, fscsdsg='A',
+                                                                     fscscurn='ZMW', curntype='F',
+                                                                     fscsyr=year.year).values(
                 current_q, 'acctid')
+            admin_ytd =budget_totals_all.filter(department_id=11)
+            admin_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsAdmin, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #finance
             finance_queryset = budget_totals.filter(department_id=12)
-            finance_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsFin, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                       fscsyr=2024).values(
+            finance_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsFin, fscsdsg='A',
+                                                                       fscscurn='ZMW', curntype='F',
+                                                                       fscsyr=year.year).values(
                 current_q, 'acctid')
+            finance_ytd = budget_totals_all.filter(department_id=12)
+            finance_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsFin, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #asset
             asset_queryset = budget_totals.filter(department_id=13)
-            asset_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsAsset, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                     fscsyr=2024).values(
+            asset_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsAsset, fscsdsg='A',
+                                                                     fscscurn='ZMW', curntype='F',
+                                                                     fscsyr=year.year).values(
                 current_q, 'acctid')
+            asset_ytd =budget_totals_all.filter(department_id=13)
+            asset_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                acctid__in=acctIdsAsset, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                fscsyr=year.year)
+            #Staff and Remunerations
             incometw_queryset = budget_totals.filter(department_id=14)
-            incometw_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIncomeTowers,fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                        fscsyr=2024).values(
+            incometw_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIncomeTowers, fscsdsg='A',
+                                                                        fscscurn='ZMW', curntype='F',
+                                                                        fscsyr=year.year).values(
                 current_q, 'acctid')
+
+            incometw_ytd =budget_totals_all.filter(department_id=14)
+            income_ytd_actuals = Glafs.objects.using('sql_server').filter(
+                    acctid__in=acctIdsIncomeTowers, fscsdsg='A', fscscurn='ZMW', curntype='F',
+                    fscsyr=year.year)
+
 
             querysets = [
-                ('CEO', 1, ceo_queryset, ceo_actuals),
-                ('Internal Audit', 2, internal_audit_queryset, internal_audit_actuals),
-                ('Supply Chain', 3, supply_chain_queryset, supply_chain_actuals),
-                ('BDS', 4, bds_queryset, bds_actuals),
-                ('Public Relations', 5, public_relations_queryset, public_relations_actuals),
-                ('Technical', 6, technical_queryset, technical_actuals),
-                ('Information Systems', 7, information_systems_queryset, information_systems_actuals),
-                ('Legal & Risk', 8, legal_risk_queryset, legal_risk_actuals),
-                ('Human Capital', 9, human_capital_queryset, human_capital_actuals),
-                ('Sales & Marketing', 10, sales_marketing_queryset, sales_marketing_actuals),
-                ('Administration', 11, admin_queryset, admin_actuals),
-                ('Finance', 12, finance_queryset, finance_actuals),
-                ('Staff Remuneration & Related costs', 14, incometw_queryset, incometw_actuals),
+                ('CEO', 1, ceo_queryset, ceo_actuals,ceo_ytd,ceo_ytd_actuals),
+               ('Internal Audit', 2, internal_audit_queryset, internal_audit_actuals,internal_audit_ytd,internal_audit_ytd_actuals),
+                ('Supply Chain', 3, supply_chain_queryset, supply_chain_actuals,supply_chain_ytd,supply_chain_ytd_actuals),
+                ('BDS', 4, bds_queryset, bds_actuals,bds_ytd,bds_ytd_actuals),
+                ('Public Relations', 5, public_relations_queryset, public_relations_actuals,public_relations_ytd,public_relations_ytd_actuals),
+                ('Technical', 6, technical_queryset, technical_actuals,technical_ytd,technical_ytd_actuals),
+               ('Information Systems', 7, information_systems_queryset, information_systems_actuals, information_systems_ytd,information_systems_ytd_actuals),
+                ('Legal & Risk', 8, legal_risk_queryset, legal_risk_actuals, legal_risk_ytd,legal_risk_ytd_actuals),
+                ('Human Capital', 9, human_capital_queryset, human_capital_actuals, human_capital_ytd,human_capital_ytd_actuals),
+                ('Sales & Marketing', 10, sales_marketing_queryset, sales_marketing_actuals,sales_marketing_ytd,sales_marketing_ytd_actuals),
+                ('Administration', 11, admin_queryset, admin_actuals,admin_ytd,admin_ytd_actuals),
+               ('Finance', 12, finance_queryset, finance_actuals, finance_ytd,finance_ytd_actuals),
+                ('Staff Remuneration & Related costs', 14, incometw_queryset, incometw_actuals, incometw_ytd,income_ytd_actuals),
 
-                ('CAPEX', 13, asset_queryset, asset_actuals),
+                ('CAPEX', 13, asset_queryset, asset_actuals,asset_ytd,asset_ytd_actuals),
 
             ]
             unit_totals = []
 
-            for dept_name, dept_id, queryset, queryset2 in querysets:
-
-                actuals = Glafs.objects.using('sql_server').filter(
-                    acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn ='ZMW' , curntype='F', fscsyr=2024)
-                values = netperd_aggregate(queryset, budget_totals_all.filter(department_id=dept_id), queryset2,
-                                           actuals, current_q, dept_id)
+            for dept_name, dept_id, queryset, queryset2,queryset3,queryset4 in querysets:
+                
+                values = netperd_aggregate(queryset, queryset3, queryset2,queryset4, current_q, dept_id)
                 unit_totals.append(
                     {
                         'acctdesc': dept_name,
@@ -1274,6 +1424,7 @@ def q1_values(request):
                         'id': dept_id
                     }
                 )
+
 
             data = {'dept_totals': unit_totals}
             print(data['dept_totals'])
@@ -1338,13 +1489,19 @@ def q1_values(request):
                        'ytd_actual_total': capex_ytd_total_actual,
                        'ytd_pending_total': capex_ytd_pending,
                        'ytd_available_total': capex_ytd_available,
-
+                       'year': year
                        }
 
             return render(request, 'index.html', context)
 
+def toggle_log(request):
+    year = FinancialYear.objects.get(is_active=True)
+    changelog_instance = ChangeLog.objects.get(year=year.year)  # Fetch the instance you want to toggle
+    changelog_instance.toggle_flag()
+    return redirect('budgets:settings')
 
 def search_dashboard(request):
+    year = FinancialYear.objects.get(is_active=True)
     period = request.GET['period']
     budget_set = 'Budget 1'
     if 'budget_set' in request.GET:
@@ -1363,8 +1520,9 @@ def search_dashboard(request):
         if 'netperd' in period:
 
             budget_total = BudgetTotals.objects.filter(
-                Q(**{field_mapping[filter]: value}, department_id=department) & Q(budget_set=budget_set)).values(period, 'id', 'account_id', 'department__name', 'account__acctdesc',
-                                'account__acctfmttd').order_by(
+                Q(**{field_mapping[filter]: value}, department_id=department) & Q(year=year.year) & Q(
+                    budget_set=budget_set)).values(period, 'id', 'account_id', 'department__name', 'account__acctdesc',
+                                                   'account__acctfmttd').order_by(
                 '-department_id', '-account_id')
             budget_total_all = BudgetTotals.objects.filter(Q(**{field_mapping[filter]: value}, )).order_by(
                 '-department_id', '-account_id')
@@ -1392,10 +1550,15 @@ def search_dashboard(request):
         dept_totals = []
         if 'netperd' in period:
 
-            budget_total = BudgetTotals.objects.filter(Q(**{field_mapping[filter]: value})&Q(budget_set=budget_set)).values(period, 'id', 'account_id', 'department__name', 'account__acctdesc',
-                                'account__acctfmttd').order_by(
+            budget_total = BudgetTotals.objects.filter(
+                Q(**{field_mapping[filter]: value}) & Q(year=year.year) & Q(budget_set=budget_set)).values(period, 'id',
+                                                                                                           'account_id',
+                                                                                                           'department__name',
+                                                                                                           'account__acctdesc',
+                                                                                                           'account__acctfmttd').order_by(
                 '-department_id', '-account_id')
-            budget_total_all = BudgetTotals.objects.filter(Q(**{field_mapping[filter]: value})&Q(budget_set=budget_set)).order_by(
+            budget_total_all = BudgetTotals.objects.filter(
+                Q(**{field_mapping[filter]: value}) & Q(year=year.year) & Q(budget_set=budget_set)).order_by(
                 '-department_id', '-account_id')
 
             for totals, totals2 in zip(budget_total, budget_total_all):
@@ -1410,90 +1573,228 @@ def search_dashboard(request):
             data = {'dept_totals': dept_totals}
             return JsonResponse({'data': data}, status=200)
 
+
+def load_status(request):
+    status = BudgetStatus.objects.all()
+    for obj in status:
+        BudgetStatus.objects.create(
+            budget_set=obj.budget_set,
+            year='2026',
+            department=obj.department,
+            is_active=False,
+            is_complete=obj.is_complete,
+            updated_by=obj.updated_by,
+            comment=obj.comment
+        )
+
+
 def load_budget(request):
     budget_instance = BudgetTotals.objects.all()
     budget_accounts = [obj.account_id for obj in budget_instance]
     accounts_instance = Accounts.objects.all()
     for item in accounts_instance:
-        if item.acctid not in budget_accounts:
-            try:
-                BudgetTotals.objects.create(
-                    account_id=item.acctid,  # An instance of the Accounts model
-                    currency_id=1,  # Replace with an actual Currency instance
-                    department_id=item.department_id,  # Replace with an actual Department instance
-                    year='2024',
-                    total=0.0,
-                    netperd1=0.0,
-                    netperd2=0.0,
-                    netperd3=0.0,
-                    netperd4=0.0,
-                    netperd5=0.0,
-                    netperd6=0.0,
-                    netperd7=0.0,
-                    netperd8=0.0,
-                    netperd9=0.0,
-                    netperd10=0.0,
-                    netperd11=0.0,
-                    netperd12=0.0,
-                    budget_set='Budget 1',  # Replace with a valid choice from SET_TYPE
-                    last_updated_by=request.user,  # Replace with an actual Users instance
-                    posted=False,
-                    exchange_rate=1.0)
-                print(f'BudgetTotals created for account {item.acctid}')
-            except Accounts.DoesNotExist:
-                print(f'Account {item.acctid} does not exist in Accounts model')
-            except Exception as e:
-                print(f'An error occurred: {e}')
+        try:
+            BudgetTotals.objects.create(
+                account_id=item.acctid,  # An instance of the Accounts model
+                currency_id=1,  # Replace with an actual Currency instance
+                department_id=item.department_id,  # Replace with an actual Department instance
+                year='2025',
+                total=0.0,
+                netperd1=0.0,
+                netperd2=0.0,
+                netperd3=0.0,
+                netperd4=0.0,
+                netperd5=0.0,
+                netperd6=0.0,
+                netperd7=0.0,
+                netperd8=0.0,
+                netperd9=0.0,
+                netperd10=0.0,
+                netperd11=0.0,
+                netperd12=0.0,
+                budget_set='Budget 2',  # Replace with a valid choice from SET_TYPE
+                last_updated_by=request.user,  # Replace with an actual Users instance
+                posted=False,
+                exchange_rate=1.00)
+            print(f'BudgetTotals created for account {item.acctid}')
+        except Accounts.DoesNotExist:
+            print(f'Account {item.acctid} does not exist in Accounts model')
+        except Exception as e:
+            print(f'An error occurred: {e}')
+
+def load_lines_excel(request):
 
 
+    # Load the Excel file
+    file_path = 'sorted_dataset.xlsx'
+    df = pd.read_excel(file_path)
+
+    # Iterate through the rows of the Excel sheet
+    for index, row in df.iterrows():
+        # Get the account_id from the Excel sheet and ensure it is 45 characters long by adding trailing spaces
+        account_id = str(row['account_id']).ljust(45)
+
+        try:
+            # Find the Accounts object, match with padded account_id
+            account = Accounts.objects.get(acctid=account_id)
+
+            # Find the corresponding BudgetTotals object
+            budget_total = BudgetTotals.objects.get(account=account,budget_set="Budget 1", year= "2024")
+
+            # Update the netperd fields and total
+            budget_total.netperd1 = row['netperd1']
+            budget_total.netperd2 = row['netperd2']
+            budget_total.netperd3 = row['netperd3']
+            budget_total.netperd4 = row['netperd4']
+            budget_total.netperd5 = row['netperd5']
+            budget_total.netperd6 = row['netperd6']
+            budget_total.netperd7 = row['netperd7']
+            budget_total.netperd8 = row['netperd8']
+            budget_total.netperd9 = row['netperd9']
+            budget_total.netperd10 = row['netperd10']
+            budget_total.netperd11 = row['netperd11']
+            budget_total.netperd12 = row['netperd12']
+            budget_total.total = row['total']
+
+            # Save the updated record
+            budget_total.save()
+
+        except BudgetTotals.DoesNotExist:
+            print(f"BudgetTotals record not found for account_id: {account_id}")
+        except Accounts.DoesNotExist:
+            print(f"Account not found for account_id: {account_id}")
+
+def load_accounts(request):
+
+    accounts_instance = Accounts.objects.all()
+    accts = [obj.acctid for obj in accounts_instance]
+    glamf = Glamf.objects.using('sql_server').filter(acctid__icontains='71494120')
+    for g in glamf:
+        Accounts.objects.create(
+            acctid=g.acctid,
+            audtdate=g.audtdate,
+            audttime=g.audttime,
+            audtuser=g.audtuser,
+            audtorg=g.audtorg,
+            createdate=g.createdate,
+            acctdesc=g.acctdesc,
+            accttype=g.accttype,
+            acctbal=g.acctbal,
+            activesw=g.activesw,
+            consldsw=g.consldsw,
+            qtysw=g.qtysw,
+            uom=g.uom,
+            allocsw=g.allocsw,
+            acctofset=g.acctofset,
+            acctsrty=g.acctsrty,
+            mcsw=g.mcsw,
+            specsw=g.specsw,
+            acctgrpcod=g.acctgrpcod,
+            ctrlacctsw=g.ctrlacctsw,
+            srceldgid=g.srceldgid,
+            alloctot=g.alloctot,
+            abrkid=g.abrkid,
+            yracctclos=g.yracctclos,
+            acctfmttd=g.acctfmttd,
+            acsegval01=g.acsegval01,
+            acsegval02=g.acsegval02,
+            acsegval03=g.acsegval03,
+            acsegval04=g.acsegval04,
+            acsegval05=g.acsegval05,
+            acsegval06=g.acsegval06,
+            acsegval07=g.acsegval07,
+            acsegval08=g.acsegval08,
+            acsegval09=g.acsegval09,
+            acsegval10=g.acsegval10,
+            acctsegval=g.acctsegval,
+            acctgrpscd=g.acctgrpscd,
+            postosegid=g.postosegid,
+            defcurncod=g.defcurncod,
+            ovalues=g.ovalues,
+            tovalues=g.tovalues,
+            rollupsw=g.rollupsw,
+            department_id=1
+        )
 def load_lines(request):
-
-    glafs_instance_main = Glafs.objects.using('sql_server').filter( fscsdsg='1', fscscurn ='ZMW', curntype='F', fscsyr=2024).all()
+    year = FinancialYear.objects.filter(is_active=True)
+    glafs_instance_main = Glafs.objects.using('sql_server').filter(fscsdsg='1', fscscurn='ZMW', curntype='F',
+                                                                  fscsyr=2025).all()
     gl_accts = [obj.acctid for obj in glafs_instance_main]
     accounts_instance = Accounts.objects.all()
     accts = [obj.acctid for obj in accounts_instance]
 
-    budget_instance = BudgetTotals.objects.filter(budget_set="Budget 1")
+    budget_instance = BudgetTotals.objects.filter(budget_set="Budget 1", year="2025")
     budget_accts = [obj.account_id for obj in budget_instance]
-    print(gl_accts, accts)
+    
     """for accounts in budget_instance:
             accounts.total = 0
             for i in range(1, 13):
                 setattr(accounts, f'netperd{i}', 0)"""
-    for obj1,obj2 in zip(accounts_instance,glafs_instance_main):
-            acc = Accounts.objects.get(acctid=obj2.acctid)
-            try:
-                netperd_total = (
-                        obj2.netperd1 + obj2.netperd2 + obj2.netperd3 + obj2.netperd4 +
-                        obj2.netperd5 + obj2.netperd6 + obj2.netperd7 + obj2.netperd8 +
-                        obj2.netperd9 + obj2.netperd10 + obj2.netperd11 + obj2.netperd12
-                )
-                BudgetLiness.objects.filter(account_id=obj2.acctid,budget_set="Budget 1").update(
-                
-                    total=netperd_total,
-                    netperd1=obj2.netperd1,
-                    netperd2=obj2.netperd2,
-                    netperd3=obj2.netperd3,
-                    netperd4=obj2.netperd4,
-                    netperd5=obj2.netperd5,
-                    netperd6=obj2.netperd6,
-                    netperd7=obj2.netperd7,
-                    netperd8=obj2.netperd8,
-                    netperd9=obj2.netperd9,
-                    netperd10=obj2.netperd10,
-                    netperd11=obj2.netperd11,
-                    netperd12=obj2.netperd12,
+    for obj1, obj2 in zip(accounts_instance, glafs_instance_main):
 
-                    )
-                print(f'BudgetTotals created for account {obj2.acctid}')
-            except Accounts.DoesNotExist:
-                print(f'Account {obj2.acctid} does not exist in Accounts model')
-            except Exception as e:
-                print(f'An error occurred: {e}')
+        print(obj2.acctid)
+        acc = Accounts.objects.get(acctid=obj2.acctid)
+        try:
+            netperd_total = (
+                    obj2.netperd1 + obj2.netperd2 + obj2.netperd3 + obj2.netperd4 +
+                    obj2.netperd5 + obj2.netperd6 + obj2.netperd7 + obj2.netperd8 +
+                    obj2.netperd9 + obj2.netperd10 + obj2.netperd11 + obj2.netperd12
+            )
+            BudgetLines.objects.create(
+                currency_id =1,
+                usage=0.0,
+                rate=0.0,
+                staff=0.0,
+                factor=0.0,
+                budget_set= "Budget 1",
+                last_updated = datetime.now(),
+                item_description="Opening Budget Line",
+                department_id=acc.department_id,
+                last_updated_by_id=2,
+                exchange_rate=1.00,
+                year="2025",
+                total=netperd_total,
+                netperd1=obj2.netperd1,
+                netperd2=obj2.netperd2,
+                netperd3=obj2.netperd3,
+                netperd4=obj2.netperd4,
+                netperd5=obj2.netperd5,
+                netperd6=obj2.netperd6,
+                netperd7=obj2.netperd7,
+                netperd8=obj2.netperd8,
+                netperd9=obj2.netperd9,
+                netperd10=obj2.netperd10,
+                netperd11=obj2.netperd11,
+                netperd12=obj2.netperd12,
+                account_id=acc.acctid,
+                assumption_id=1
+            )
+            """BudgetTotals.objects.filter(account_id=obj2.acctid, budget_set="Budget 1",year="2025").update(
 
+                total=netperd_total,
+                netperd1=obj2.netperd1,
+                netperd2=obj2.netperd2,
+                netperd3=obj2.netperd3,
+                netperd4=obj2.netperd4,
+                netperd5=obj2.netperd5,
+                netperd6=obj2.netperd6,
+                netperd7=obj2.netperd7,
+                netperd8=obj2.netperd8,
+                netperd9=obj2.netperd9,
+                netperd10=obj2.netperd10,
+                netperd11=obj2.netperd11,
+                netperd12=obj2.netperd12,
+
+            )"""
+            print(f'BudgetTotals created for account {obj2.acctid}')
+        except Accounts.DoesNotExist:
+            print(f'Account {obj2.acctid} does not exist in Accounts model')
+        except Exception as e:
+            print(f'An error occurred: {e}')
 
 
 def search_results_dashboard(request, acct):
+    year = FinancialYear.objects.get(is_active=True)
     month_field_mapping = {
         1: 'netperd1',
         2: 'netperd2',
@@ -1523,14 +1824,21 @@ def search_results_dashboard(request, acct):
         12: "December"
     }
     dept_totals = []
-    active = BudgetVariations.objects.get(is_active=True)
-    desc = get_object_or_404(BudgetTotals, account__acctid__icontains=acct, budget_set=active.budget_set)
-    budget_total_all = BudgetTotals.objects.filter(account__acctid__icontains=acct, posted=False,budget_set=active.budget_set).order_by('-department_id', '-account_id')
+    active = BudgetVariations.objects.get(is_active=True,year=year.year)
+    desc = get_object_or_404(BudgetTotals, account__acctid__icontains=acct, budget_set=active.budget_set,
+                             year=year.year)
+    budget_total_all = BudgetTotals.objects.filter(account__acctid__icontains=acct, posted=False,
+                                                   budget_set=active.budget_set, year=year.year).order_by(
+        '-department_id', '-account_id')
 
     for month in range(1, 13):
         month_field = month_field_mapping.get(month, None)
         if month_field:
-            budget_total = BudgetTotals.objects.filter(account__acctid__icontains=acct, posted=False,budget_set=active.budget_set).values(month_field, 'account_id', 'account__acctdesc', 'account__acctfmttd').order_by(
+            budget_total = BudgetTotals.objects.filter(account__acctid__icontains=acct, posted=False,
+                                                       budget_set=active.budget_set, year=year.year).values(month_field,
+                                                                                                            'account_id',
+                                                                                                            'account__acctdesc',
+                                                                                                            'account__acctfmttd').order_by(
                 '-department_id', '-account_id')
             month_name = month_names[month]
             for totals, totals2 in zip(budget_total, budget_total_all):
@@ -1552,13 +1860,16 @@ def search_results_dashboard(request, acct):
 
 
 def actual_dashboard(request, department):
+    year = FinancialYear.objects.get(is_active=True)
     dept_totals = []
     current_q = request.GET['period']
     account = request.GET.get('account', None)
-    active = BudgetVariations.objects.get(is_active=True)
+    active = BudgetVariations.objects.get(is_active=True,year=year.year)
     if account:
-        budget_total = BudgetTotals.objects.filter(department_id=department, budget_set=active.budget_set ,account__acctid__icontains=account,
-                                                   posted=False).values('account_id', 'account__acctdesc', 'account__acctfmttd').order_by(
+        budget_total = BudgetTotals.objects.filter(department_id=department, budget_set=active.budget_set,
+                                                   year=year.year, account__acctid__icontains=account,
+                                                   posted=False).values('account_id', 'account__acctdesc',
+                                                                        'account__acctfmttd').order_by(
             '-department_id', '-account_id')
 
         acctIds = [obj['account_id'] for obj in budget_total.filter(department_id=department)]
@@ -1580,7 +1891,10 @@ def actual_dashboard(request, department):
         }
         return render(request, 'actual.html', context)
     else:
-        budget_total = BudgetTotals.objects.filter(department_id=department, budget_set=active.budget_set , posted=False).values('account_id', 'account__acctdesc', 'account__acctfmttd').order_by(
+        budget_total = BudgetTotals.objects.filter(department_id=department, budget_set=active.budget_set,
+                                                   year=year.year, posted=False).values('account_id',
+                                                                                        'account__acctdesc',
+                                                                                        'account__acctfmttd').order_by(
             '-department_id', '-account_id')
 
         acctIds = [obj['account_id'] for obj in budget_total.filter(department_id=department)]
@@ -1604,13 +1918,17 @@ def actual_dashboard(request, department):
 
 
 def pending_dashboard(request, department):
+    year = FinancialYear.objects.get(is_active=True)
     dept_totals = []
     current_q = request.GET['period']
-    active = BudgetVariations.objects.get(is_active=True)
+    active = BudgetVariations.objects.get(is_active=True,year=year.year)
     account = request.GET.get('account', None)
     if account:
-        budget_total = BudgetTotals.objects.filter(department_id=department, budget_set=active.budget_set , account__acctid__icontains=account,
-                                                   posted=False).values('account_id', 'account__acctdesc', 'account__acctfmttd').order_by(
+        budget_total = BudgetTotals.objects.filter(department_id=department, budget_set=active.budget_set,
+                                                   account__acctid__icontains=account,
+                                                   posted=False, year=year.year).values('account_id',
+                                                                                        'account__acctdesc',
+                                                                                        'account__acctfmttd').order_by(
             '-department_id', '-account_id')
 
         acctIds = [obj['account__acctfmttd'] for obj in budget_total.filter(department_id=department)]
@@ -1632,7 +1950,9 @@ def pending_dashboard(request, department):
         }
         return render(request, 'pending.html', context)
     else:
-        budget_total = BudgetTotals.objects.filter(department_id=department, budget_set=active.budget_set , posted=False).values('account_id', 'account__acctdesc', 'account__acctfmttd').order_by(
+        budget_total = BudgetTotals.objects.filter(department_id=department, budget_set=active.budget_set, posted=False,
+                                                   year=year.year).values('account_id', 'account__acctdesc',
+                                                                          'account__acctfmttd').order_by(
             '-department_id', '-account_id')
 
         acctIds = [obj['account__acctfmttd'] for obj in budget_total.filter(department_id=department)]
@@ -1657,6 +1977,7 @@ def pending_dashboard(request, department):
 
 def quarter_dashboard_index_department_table(request):
     if request.user.is_authenticated:
+        year = FinancialYear.objects.get(is_active=True)
         dept_totals = []
         budget_set = 'Budget 1'
         if 'budget_set' in request.GET:
@@ -1667,9 +1988,13 @@ def quarter_dashboard_index_department_table(request):
         if ptype == 'month':
             # Im using the populated account ids here for coherence(we dont want to hve accounts showing that havent yet been entered)
 
-            budget_total = BudgetTotals.objects.filter(department_id=department, posted=False,budget_set=budget_set).values(current_q, 'account_id', 'account__acctdesc', 'account__acctfmttd').order_by(
+            budget_total = BudgetTotals.objects.filter(department_id=department, posted=False, budget_set=budget_set,
+                                                       year=year.year).values(current_q, 'account_id',
+                                                                              'account__acctdesc',
+                                                                              'account__acctfmttd').order_by(
                 '-department_id', '-account_id')
-            budget_total_all = BudgetTotals.objects.filter(department_id=department, posted=False,budget_set=budget_set).order_by(
+            budget_total_all = BudgetTotals.objects.filter(department_id=department, posted=False,
+                                                           budget_set=budget_set, year=year.year).order_by(
                 '-department_id', '-account_id')
 
             for totals, totals2 in zip(budget_total, budget_total_all):
@@ -1687,9 +2012,13 @@ def quarter_dashboard_index_department_table(request):
             # Im using the populated account ids here for coherence(we dont want to hve accounts showing that havent yet been entered)
             months_in_current_quarter = netperd_in_quarter(int(current_q))
             net_perds = [month for month in months_in_current_quarter]
-            budget_total = BudgetTotals.objects.filter(department_id=department, posted=False,budget_set=budget_set).values(*net_perds, 'account_id', 'account__acctdesc', 'account_acctfmttd').order_by(
+            budget_total = BudgetTotals.objects.filter(department_id=department, posted=False, budget_set=budget_set,
+                                                       year=year.year).values(*net_perds, 'account_id',
+                                                                              'account__acctdesc',
+                                                                              'account_acctfmttd').order_by(
                 '-department_id', '-account_id')
-            budget_total_all = BudgetTotals.objects.filter(department_id=department, posted=False,budget_set=budget_set).order_by(
+            budget_total_all = BudgetTotals.objects.filter(department_id=department, posted=False,
+                                                           budget_set=budget_set, year=year.year).order_by(
                 '-department_id', '-account_id')
 
             for totals, totals2 in zip(budget_total, budget_total_all):
@@ -1712,6 +2041,7 @@ def quarter_dashboard_index_department_table(request):
 
 def dashboard_index_department(request):
     if request.user.is_authenticated:
+        year = FinancialYear.objects.get(is_active=True)
         department = request.user.department.id
 
         if request.user.is_authenticated:
@@ -1723,7 +2053,8 @@ def dashboard_index_department(request):
 
             if department == 9:
                 budget_totals_all = BudgetTotals.objects.filter(
-                    Q(posted=False) & Q(department_id__in=(9, 14,)) & Q(budget_set=budget_set)).order_by(
+                    Q(posted=False) & Q(department_id__in=(9, 14,)) & Q(year=year.year) & Q(
+                        budget_set=budget_set)).order_by(
                     '-department_id',
                     '-account_id')
 
@@ -1751,13 +2082,14 @@ def dashboard_index_department(request):
                                        budget_totals.filter(department_id=14)]
 
                     queryset = budget_totals.filter(department_id=department)
-                    actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIds, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                       fscsyr=2024).values(
+                    actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIds, fscsdsg='A', fscscurn='ZMW',
+                                                                       curntype='F',
+                                                                       fscsyr=year.year).values(
                         *net_perds,
                         'acctid')
                     incomedc_queryset = budget_totals.filter(department_id=14)
                     incomedc_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIncomeDC,
-                                                                                fscsyr=2024).values(
+                                                                                fscsyr=year.year).values(
                         *net_perds, 'acctid')
 
                     querysets = [
@@ -1769,7 +2101,8 @@ def dashboard_index_department(request):
 
                     for dept_name, dept_id, queryset, queryset2 in querysets:
                         actuals = Glafs.objects.using('sql_server').filter(
-                            acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn ='ZMW' , curntype='F', fscsyr=2024)
+                            acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn='ZMW',
+                            curntype='F', fscsyr=year.year)
                         values = quarter_aggregate(queryset, budget_totals_all.filter(department_id=dept_id),
                                                    queryset2,
                                                    actuals, current_q, dept_id)
@@ -1816,7 +2149,8 @@ def dashboard_index_department(request):
                     current_q = current_period()
                     if 'period' in request.GET:
                         current_q = request.GET['period']
-                    budget_total = BudgetTotals.objects.filter(department_id__in=(9, 14,), posted=False,).values(current_q, 'account_id', 'account__acctdesc', 'account_acctfmttd').order_by(
+                    budget_total = BudgetTotals.objects.filter(department_id__in=(9, 14,), posted=False, ).values(
+                        current_q, 'account_id', 'account__acctdesc', 'account_acctfmttd').order_by(
                         '-department_id', '-account_id')
                     budget_total_all = BudgetTotals.objects.filter(department_id__in=(9, 14,),
                                                                    posted=False).order_by(
@@ -1827,13 +2161,16 @@ def dashboard_index_department(request):
                                            budget_total.filter(department_id=14)]
 
                     queryset = budget_total.filter(department_id=department)
-                    actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIds, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                       fscsyr=2024).values(
+                    actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIds, fscsdsg='A', fscscurn='ZMW',
+                                                                       curntype='F',
+                                                                       fscsyr=year.year).values(
                         current_q,
                         'acctid')
                     incometw_queryset = budget_total.filter(department_id=14)
-                    incometw_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIncomeTowers, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                                fscsyr=2024).values(
+                    incometw_actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIdsIncomeTowers,
+                                                                                fscsdsg='A', fscscurn='ZMW',
+                                                                                curntype='F',
+                                                                                fscsyr=year.year).values(
                         current_q, 'acctid')
 
                     querysets = [
@@ -1847,7 +2184,8 @@ def dashboard_index_department(request):
                     unit_totals = []
                     for dept_name, dept_id, queryset, queryset2 in querysets:
                         actuals = Glafs.objects.using('sql_server').filter(
-                            acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn ='ZMW' , curntype='F', fscsyr=2024)
+                            acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn='ZMW',
+                            curntype='F', fscsyr=year.year)
                         values = netperd_aggregate(queryset, budget_totals_all.filter(department_id=dept_id), queryset2,
                                                    actuals, current_q, dept_id)
                         unit_totals.append(
@@ -1904,8 +2242,9 @@ def dashboard_index_department(request):
                     return render(request, 'dept-user-index.html', context)
             else:
                 budget_totals_all = BudgetTotals.objects.filter(
-                    Q(posted=False) & Q(department_id=department) & Q(budget_set=budget_set)).order_by('-department_id',
-                                                                                                       '-account_id')
+                    Q(posted=False) & Q(department_id=department) & Q(year=year.year) & Q(
+                        budget_set=budget_set)).order_by('-department_id',
+                                                         '-account_id')
 
                 department_total_sum = budget_totals_all.aggregate(total_sum=Sum('total'))['total_sum'] or 0
 
@@ -1920,17 +2259,19 @@ def dashboard_index_department(request):
                     months_in_current_quarter = netperd_in_quarter(int(current_q))
                     net_perds = [month for month in months_in_current_quarter]
 
-                    budget_totals = BudgetTotals.objects.filter(Q(posted=False) & Q(department_id=department) & Q(budget_set=budget_set)
-                                                                ).order_by('-department_id',
-                                                                           '-account_id').values(
+                    budget_totals = BudgetTotals.objects.filter(
+                        Q(posted=False) & Q(department_id=department) & Q(year=year.year) & Q(budget_set=budget_set)
+                        ).order_by('-department_id',
+                                   '-account_id').values(
                         *net_perds, 'account_id', 'account__acctdesc', 'account_acctfmttd')
 
                     acctIds = [obj['account_id'] for obj in
                                budget_totals.filter(department_id=department)]
 
                     queryset = budget_totals.filter(department_id=department)
-                    actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIds, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                       fscsyr=2024).values(
+                    actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIds, fscsdsg='A', fscscurn='ZMW',
+                                                                       curntype='F',
+                                                                       fscsyr=year.year).values(
                         *net_perds,
                         'acctid')
 
@@ -1941,7 +2282,8 @@ def dashboard_index_department(request):
 
                     for dept_name, dept_id, queryset, queryset2 in querysets:
                         actuals = Glafs.objects.using('sql_server').filter(
-                            acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn ='ZMW' , curntype='F', fscsyr=2024)
+                            acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn='ZMW',
+                            curntype='F', fscsyr=year.year)
                         values = quarter_aggregate(queryset, budget_totals_all.filter(department_id=dept_id),
                                                    queryset2,
                                                    actuals, current_q, dept_id)
@@ -1988,7 +2330,10 @@ def dashboard_index_department(request):
                     current_q = current_period()
                     if 'period' in request.GET:
                         current_q = request.GET['period']
-                    budget_total = BudgetTotals.objects.filter(department_id=department, posted=False).values(current_q, 'account_id', 'account__acctdesc', 'account__acctfmttd').order_by(
+                    budget_total = BudgetTotals.objects.filter(department_id=department, posted=False).values(current_q,
+                                                                                                              'account_id',
+                                                                                                              'account__acctdesc',
+                                                                                                              'account__acctfmttd').order_by(
                         '-department_id', '-account_id')
                     budget_total_all = BudgetTotals.objects.filter(department_id=department, posted=False).exclude(
                         total=0).order_by(
@@ -1997,8 +2342,9 @@ def dashboard_index_department(request):
                     acctIds = [obj['account_id'] for obj in budget_total.filter(department_id=department)]
 
                     queryset = budget_total.filter(department_id=department)
-                    actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIds, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                                       fscsyr=2024).values(
+                    actuals = Glafs.objects.using('sql_server').filter(acctid__in=acctIds, fscsdsg='A', fscscurn='ZMW',
+                                                                       curntype='F',
+                                                                       fscsyr=year.year).values(
                         current_q,
                         'acctid')
                     unit_totals = []
@@ -2007,7 +2353,8 @@ def dashboard_index_department(request):
                     ]
                     for dept_name, dept_id, queryset, queryset2 in querysets:
                         actuals = Glafs.objects.using('sql_server').filter(
-                            acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn ='ZMW' , curntype='F', fscsyr=2024)
+                            acctid__in=[obj['account_id'] for obj in queryset], fscsdsg='A', fscscurn='ZMW',
+                            curntype='F', fscsyr=year.year)
                         values = netperd_aggregate(queryset, budget_totals_all.filter(department_id=dept_id), queryset2,
                                                    actuals, current_q, dept_id)
                         unit_totals.append(
@@ -2068,15 +2415,17 @@ def dashboard_index_department(request):
 
 def capex_index(request):
     if request.user.is_authenticated:
-        obj = BudgetVariations.objects.get(is_active=True)
-        account_details = BudgetTotals.objects.filter(budget_set=obj.budget_set, posted=False).order_by(
+        year = FinancialYear.objects.get(is_active=True)
+        obj = BudgetVariations.objects.get(is_active=True,year=year.year)
+        account_details = BudgetTotals.objects.filter(budget_set=obj.budget_set, posted=False, year=year.year).order_by(
             '-account_id').annotate(
             count=Count('department__id'))
 
         # Income accounts
 
         # Asset accounts
-        asset = BudgetTotals.objects.filter(budget_set=obj.budget_set, department_id=13, posted=False).order_by(
+        asset = BudgetTotals.objects.filter(budget_set=obj.budget_set, department_id=13, posted=False,
+                                            year=year.year).order_by(
             '-account_id')
         paginator = Paginator(asset, 10)
         page_number = request.GET.get('page')
@@ -2097,14 +2446,16 @@ def capex_index(request):
 
 def dept_user_index(request):
     if request.user.is_authenticated:
-        obj = BudgetVariations.objects.get(is_active=True)
+        year = FinancialYear.objects.get(is_active=True)
+
+        obj = BudgetVariations.objects.get(is_active=True,year=year.year)
         department_conditions = Q()
         for department_id in range(1, 13):  # Assuming departments IDs range from 1 to 12
             department_conditions |= Q(department_id=department_id)
-        active = get_object_or_404(BudgetVariations, is_active=True)
+        active = get_object_or_404(BudgetVariations, is_active=True, year=year.year)
         # Fetch all relevant budget totals in a single query
         budget_totals = BudgetTotals.objects.filter(
-            Q(budget_set=obj.budget_set) & Q(posted=False) & department_conditions
+            Q(budget_set=obj.budget_set) & Q(posted=False) & Q(year=year.year) & department_conditions
         ).order_by('-department_id', '-account_id')
 
         # Create separate variables for each department
@@ -2182,10 +2533,535 @@ def dept_user_index(request):
     else:
         return redirect('budgets:login')
 
+def get_paginated_data(budget_totals, department_id, per_page=10):
+            """Helper function to filter, paginate, and extract group IDs for a department."""
+            queryset = budget_totals.filter(department_id=department_id)
+
+            group_ids = Group.objects.filter(department_id=department_id, parent_group__isnull=True).order_by('name')
+
+            # Include sub-groups within each parent group
+            groups_with_subgroups = []
+            for group in group_ids:
+                sub_groups = Group.objects.filter(parent_group=group)
+                groups_with_subgroups.append((group, sub_groups))
+
+            return queryset, groups_with_subgroups
+
+
+def budget_summary(request):
+    if request.user.is_authenticated:
+        year = FinancialYear.objects.get(is_active=True)
+        obj = BudgetVariations.objects.get(is_active=True,year=year.year)
+        if request.user:
+
+            # Combine all department conditions using Q objects
+            department_conditions = Q()
+            for department_id in range(1, 15):  # Assuming departments IDs range from 1 to 12
+                department_conditions |= Q(department_id=department_id)
+
+            # Fetch all relevant budget totals in a single query
+            budget_totals = BudgetLines.objects.filter(
+                Q(budget_set=obj.budget_set) & Q(year=year.year) & Q(posted=False) & department_conditions
+            ).exclude(department_id=13).exclude(total=0).order_by('-department_id', '-account_id')
+            groups = Group.objects.all()
+
+            # Your main view logic
+            ceo_obj, ceo_group_ids = get_paginated_data(budget_totals, 1)
+            internal_audit_obj, internal_audit_group_ids = get_paginated_data(budget_totals, 2)
+            supply_chain_obj, supply_chain_group_ids = get_paginated_data(budget_totals, 3)
+            bds_obj, bds_group_ids = get_paginated_data(budget_totals, 4)
+            public_relations_obj, public_relations_group_ids = get_paginated_data(budget_totals, 10)
+            technical_obj, technical_group_ids = get_paginated_data(budget_totals, 6)
+            information_systems_obj, information_systems_group_ids = get_paginated_data(budget_totals, 7)
+            legal_risk_obj, legal_risk_group_ids = get_paginated_data(budget_totals, 8)
+            human_capital_obj, human_capital_group_ids = get_paginated_data(budget_totals, 9)
+            sales_marketing_obj, sales_marketing_group_ids = get_paginated_data(budget_totals, 10)
+            admin_page_obj, admin_group_ids = get_paginated_data(budget_totals, 11)
+            finance_page_obj, finance_group_ids = get_paginated_data(budget_totals, 12)
+            staff_n_page_obj, staff_n_group_ids = get_paginated_data(budget_totals, 14)
+            # Calculate total sum
+            total_sum = budget_totals.aggregate(total_sum=Sum('total'))['total_sum']
+            # Populate context variable
+            context = {
+                'status': obj.is_complete,
+                'ceo': ceo_obj,
+                'ceo_group_ids': ceo_group_ids,
+                'internal_audit': internal_audit_obj,
+                'internal_audit_group_ids': internal_audit_group_ids,
+                'supply_chain': supply_chain_obj,
+                'supply_chain_group_ids': supply_chain_group_ids,
+                'bds': bds_obj,
+                'bds_group_ids': bds_group_ids,
+                'public_relations': public_relations_obj,
+                'public_relations_group_ids': public_relations_group_ids,
+                'technical': technical_obj,
+                'technical_group_ids': technical_group_ids,
+                'information_systems': information_systems_obj,
+                'information_systems_group_ids': information_systems_group_ids,
+                'legal_risk': legal_risk_obj,
+                'legal_risk_group_ids': legal_risk_group_ids,
+                'human_capital': human_capital_obj,
+                'human_capital_group_ids': human_capital_group_ids,
+                'sales_marketing': sales_marketing_obj,
+                'sales_marketing_group_ids': sales_marketing_group_ids,
+                'admin': admin_page_obj,
+                'admin_group_ids': admin_group_ids,
+
+                'finance': finance_page_obj,
+                'finance_group_ids': finance_group_ids,
+                'staff_n_page': staff_n_page_obj,
+                'staff_n_group_ids': staff_n_group_ids,
+                'budget_set': obj.budget_set,
+                'total': total_sum
+            }
+
+            return render(request, 'budget_summary.html', context)
+
+
+
+    else:
+        return redirect('budgets:login')
+
+def replicate_accounts_with_group_ids(request):
+    # Define the account values to filter
+    values = [
+        "62040-200", "62070-200", "62080-200",
+        "62100-200", "62110-200", "62190-200",
+        "62195-200", "62225-200", "63270-200"
+    ]
+
+    # Hardcoded list of group IDs to assign
+    group_ids = [170, 172, 173, 174, 175, 176]
+
+    # Retrieve the accounts based on the specified values
+    query = Q()
+    for value in values:
+        query |= Q(acctfmttd__icontains=value)
+
+    # Retrieve the accounts based on the specified values using icontains
+    accounts = Accounts.objects.filter(query)
+    new_accounts = []
+    # Loop through existing accounts and replicate them
+    for account in accounts:
+        for group_id in group_ids:
+            # Create a new account instance with the same data but different group_id
+            new_account = Accounts(
+                acctid=account.acctid,  # Assuming acctid can be duplicated
+                group_id=group_id,  # Set the new group_id
+                audtdate=account.audtdate,
+                audttime=account.audttime,
+                audtuser=account.audtuser,
+                audtorg=account.audtorg,
+                createdate=account.createdate,
+                acctdesc=account.acctdesc,
+                accttype=account.accttype,
+                acctbal=account.acctbal,
+                activesw=account.activesw,
+                consldsw=account.consldsw,
+                qtysw=account.qtysw,
+                uom=account.uom,
+                allocsw=account.allocsw,
+                acctofset=account.acctofset,
+                acctsrty=account.acctsrty,
+                mcsw=account.mcsw,
+                specsw=account.specsw,
+                acctgrpcod=account.acctgrpcod,
+                ctrlacctsw=account.ctrlacctsw,
+                srceldgid=account.srceldgid,
+                alloctot=account.alloctot,
+                abrkid=account.abrkid,
+                yracctclos=account.yracctclos,
+                acctfmttd=account.acctfmttd,
+                acsegval01=account.acsegval01,
+                acsegval02=account.acsegval02,
+                acsegval03=account.acsegval03,
+                acsegval04=account.acsegval04,
+                acsegval05=account.acsegval05,
+                acsegval06=account.acsegval06,
+                acsegval07=account.acsegval07,
+                acsegval08=account.acsegval08,
+                acsegval09=account.acsegval09,
+                acsegval10=account.acsegval10,
+                acctsegval=account.acctsegval,
+                acctgrpscd=account.acctgrpscd,
+                postosegid=account.postosegid,
+                defcurncod=account.defcurncod,
+                ovalues=account.ovalues,
+                tovalues=account.tovalues,
+                rollupsw=account.rollupsw,
+                department=account.department)
+            new_accounts.append(new_account)
+
+    # Bulk create new account instances
+    Accounts.objects.bulk_create(new_accounts)
+
+    # Return a JSON response indicating success
+    return JsonResponse({'status': 'success', 'created_count': len(new_accounts)})
+def load_groups(request):
+    departments = Department.objects.all()
+    values  = ["71492-800", "71494-800", "71500-800"]
+
+    groups = Group.objects.filter(name='Staff Welfare')
+    dept_to_group = {group.department_id: group.id for group in groups}
+    for acc in values:
+        account = Accounts.objects.filter(acctfmttd__icontains=acc)
+        if account.exists():
+            for account in account:
+                group_id = dept_to_group.get(account.department_id)
+                print(account, group_id)
+                Accounts.objects.filter(acctid=account.acctid).update(group_id=group_id)
+        else:
+            continue
+"""from openpyxl.utils.dataframe import dataframe_to_rows
+def to_excel(request):
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=budget_summary.xlsx'
+    data = {
+        'Department': ['Sales', 'Sales', 'Sales', 'HR', 'HR', 'HR', 'Finance', 'Finance', 'IT', 'IT'],
+        'Group': ['Team A', 'Team B', 'Team C', 'Team D', 'Team E', 'Team F', 'Team G', 'Team H', 'Team I', 'Team J'],
+        'Employee': ['Alice', 'Bob', 'Charlie', 'David', 'Eva', 'Frank', 'Grace', 'Hank', 'Ivy', 'Jack'],
+        'Salary': [50000, 60000, 55000, 52000, 58000, 57000, 62000, 61000, 65000, 68000]
+    }
+
+    # Create a DataFrame
+    df = DataFrame(data)
+
+    # Sort the data by Department, Group, and Employee
+    df_sorted = df.sort_values(by=['Department', 'Group', 'Employee'])
+
+    # Create a new Excel workbook and select the active worksheet
+    wb = Workbook()
+    ws = wb.active
+
+    # Write headers
+    headers = ['Department', 'Group', 'Employee', 'Salary']
+    ws.append(headers)
+
+    # Define the starting row index
+    start_row = 2
+
+    # Add data to the Excel sheet with hierarchical grouping
+    for dept in df_sorted['Department'].unique():
+        dept_data = df_sorted[df_sorted['Department'] == dept]
+        dept_start_row = start_row
+
+        for group in dept_data['Group'].unique():
+            group_data = dept_data[dept_data['Group'] == group]
+            group_start_row = start_row
+
+            for row in dataframe_to_rows(group_data, index=False, header=False):
+                ws.append(row)
+                start_row += 1
+
+            # Group the rows for each group (Level 3 - Employee level)
+            ws.row_dimensions.group(group_start_row, start_row - 1, hidden=True)
+
+        # Group the rows for each department (Level 2 - Group level)
+        ws.row_dimensions.group(dept_start_row, start_row - 1, hidden=False)
+
+        # Department-level grouping (Level 1)
+        ws.row_dimensions.group(dept_start_row, start_row - 1, hidden=False)
+    wb.save(response)
+    return response"""
+
+def to_excel_department(request,dept_id):
+    output = io.BytesIO()
+    dept = Department.objects.get(id=dept_id)
+    workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+    worksheet = workbook.add_worksheet()
+    bold = workbook.add_format({"bold": True})
+    center_format = workbook.add_format({"bold": True, "align": "center", "valign": "vcenter", "font_size": 14})
+    worksheet.merge_range('A1:R1', f'Budget Summary {dept.name}', center_format)  # Adjust the range as needed
+    worksheet.set_row(0, 30)
+
+    # Fetch budget data
+    year = FinancialYear.objects.get(is_active=True)
+    obj = BudgetVariations.objects.get(is_active=True,year=year.year)
+
+    # Fetch budget totals
+    budget_totals = BudgetLines.objects.filter(
+        Q(budget_set=obj.budget_set) & Q(year=year.year) & Q(department_id=dept_id)
+    ).exclude(total=0).order_by('department_id', 'group_id')
+
+    # Initialize variables for tracking
+    current_department = None
+    current_group = None
+    row = 4  # Start writing data from the first row
+
+    # Iterate through budget totals and write to the worksheet
+    for line in budget_totals:
+        # Check if we need to start a new department group
+        if line.department_id != current_department:
+            if current_department is not None:
+                row += 1  # Move to the next row for the new department
+
+            current_department = line.department_id
+            worksheet.write(row, 0, line.department.name,bold)  # Write department name
+            worksheet.set_row(row, None, None, {"level": 1})  # Set outline level for department
+            row += 1  # Move to the next row
+
+        # Check if we need to start a new group
+        if line.account.group_id != current_group:
+            current_group = line.account.group_id
+            # Check if line.group is None before accessing its name
+            group_name = line.account.group.name if line.account.group else ""
+            worksheet.write(row, 1, group_name,bold)  # Write group name
+            worksheet.set_row(row, None, None, {"level": 2})  # Set outline level for group
+            row += 1  # Move to the next row
+
+            # Write headers for the current group
+            headers = [
+                "Account ID", "Name", "Currency", "Year",
+                "Total", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+            ]
+            worksheet.write_row(row, 2, headers, bold)  # Write headers starting from column C
+            worksheet.set_row(row, None, None, {"level": 3})  # Set outline level for headers
+            row += 1  # Move to the next row after headers
+
+        # Write the budget line details
+        worksheet.write(row, 2, line.account_id)  # Write Account ID
+        worksheet.write(row, 3, line.item_description)  # Write item description
+        worksheet.write(row, 4, line.currency.currency)  # Write currency
+        worksheet.write(row, 5, line.year)  # Write year
+        worksheet.write(row, 6, line.total)  # Write total
+        worksheet.write(row, 7, line.netperd1)  # Write January value
+        worksheet.write(row, 8, line.netperd2)  # Write February value
+        worksheet.write(row, 9, line.netperd3)  # Write March value
+        worksheet.write(row, 10, line.netperd4)  # Write April value
+        worksheet.write(row, 11, line.netperd5)  # Write May value
+        worksheet.write(row, 12, line.netperd6)  # Write June value
+        worksheet.write(row, 13, line.netperd7)  # Write July value
+        worksheet.write(row, 14, line.netperd8)  # Write August value
+        worksheet.write(row, 15, line.netperd9)  # Write September value
+        worksheet.write(row, 16, line.netperd10)  # Write October value
+        worksheet.write(row, 17, line.netperd11)  # Write November value
+        worksheet.write(row, 18, line.netperd12)  # Write December value
+        worksheet.set_row(row, None, None, {"level": 3})  # Set outline level for data rows
+        row += 1  # Move to the next row
+
+    # Close the workbook
+    workbook.close()
+
+    # Set up the response
+    output.seek(0)
+    response = HttpResponse(output.read(),
+                            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="budget_summary.xlsx"'
+    return response
+def to_excel(request):
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+    worksheet = workbook.add_worksheet()
+    bold = workbook.add_format({"bold": True})
+    center_format = workbook.add_format({"bold": True, "align": "center", "valign": "vcenter", "font_size": 14})
+    worksheet.merge_range('A1:R1', 'Budget Summary', center_format)  # Adjust the range as needed
+    worksheet.set_row(0, 30)
+
+    # Fetch budget data
+    year = FinancialYear.objects.get(is_active=True)
+    obj = BudgetVariations.objects.get(is_active=True,year=year.year)
+
+    # Fetch budget totals
+    budget_totals = BudgetLines.objects.filter(
+        Q(budget_set=obj.budget_set) & Q(year=year.year) & Q(posted=False)
+    ).exclude(department_id=13).exclude(total=0).order_by('department_id', 'group_id')
+
+    # Initialize variables for tracking
+    current_department = None
+    current_group = None
+    row = 4  # Start writing data from the first row
+
+    # Iterate through budget totals and write to the worksheet
+    for line in budget_totals:
+        # Check if we need to start a new department group
+        if line.department_id != current_department:
+            if current_department is not None:
+                row += 1  # Move to the next row for the new department
+
+            current_department = line.department_id
+            worksheet.write(row, 0, line.department.name,bold)  # Write department name
+            worksheet.set_row(row, None, None, {"level": 1})  # Set outline level for department
+            row += 1  # Move to the next row
+
+        # Check if we need to start a new group
+        if line.account.group_id != current_group:
+            current_group = line.account.group_id
+            # Check if line.group is None before accessing its name
+            group_name = line.account.group.name if line.account.group else ""
+            worksheet.write(row, 1, group_name,bold)  # Write group name
+            worksheet.set_row(row, None, None, {"level": 2})  # Set outline level for group
+            row += 1  # Move to the next row
+
+            # Write headers for the current group
+            headers = [
+                "Account ID", "Name", "Currency", "Year",
+                "Total", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+            ]
+            worksheet.write_row(row, 2, headers, bold)  # Write headers starting from column C
+            worksheet.set_row(row, None, None, {"level": 3})  # Set outline level for headers
+            row += 1  # Move to the next row after headers
+
+        # Write the budget line details
+        worksheet.write(row, 2, line.account_id)  # Write Account ID
+        worksheet.write(row, 3, line.item_description)  # Write item description
+        worksheet.write(row, 4, line.currency.currency)  # Write currency
+        worksheet.write(row, 5, line.year)  # Write year
+        worksheet.write(row, 6, line.total)  # Write total
+        worksheet.write(row, 7, line.netperd1)  # Write January value
+        worksheet.write(row, 8, line.netperd2)  # Write February value
+        worksheet.write(row, 9, line.netperd3)  # Write March value
+        worksheet.write(row, 10, line.netperd4)  # Write April value
+        worksheet.write(row, 11, line.netperd5)  # Write May value
+        worksheet.write(row, 12, line.netperd6)  # Write June value
+        worksheet.write(row, 13, line.netperd7)  # Write July value
+        worksheet.write(row, 14, line.netperd8)  # Write August value
+        worksheet.write(row, 15, line.netperd9)  # Write September value
+        worksheet.write(row, 16, line.netperd10)  # Write October value
+        worksheet.write(row, 17, line.netperd11)  # Write November value
+        worksheet.write(row, 18, line.netperd12)  # Write December value
+        worksheet.set_row(row, None, None, {"level": 3})  # Set outline level for data rows
+        row += 1  # Move to the next row
+
+    # Close the workbook
+    workbook.close()
+
+    # Set up the response
+    output.seek(0)
+    response = HttpResponse(output.read(),
+                            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="budget_summary.xlsx"'
+    return response
+def account_list(request):
+    # Retrieve all accounts and annotate them by their group
+    accounts = Accounts.objects.select_related('group').all()
+
+    # Group accounts by their current group
+    grouped_accounts = {}
+    for account in accounts:
+        group_name = account.group.name if account.group else 'Unassigned'
+        if group_name not in grouped_accounts:
+            grouped_accounts[group_name] = []
+        grouped_accounts[group_name].append(account)
+    print(grouped_accounts)
+    return render(request, 'account_list.html', {'grouped_accounts': grouped_accounts })
+def group_index_dept(request,id):
+    if request.user.is_authenticated:
+
+            dept = Department.objects.filter(id=id)
+            depart = Department.objects.get(id=id)
+            accounts_without_group = Accounts.objects.filter(group__isnull=False,
+                                                                 department_id=id).select_related(
+                    'group')
+
+                # Group accounts by their current group (in this case, it will only be 'Unassigned')
+            grouped_accounts = {f'{depart.name}': list(accounts_without_group)}
+
+            return render(request, 'account-group.html', {'grouped_accounts': grouped_accounts, 'department': dept})
+def group_index(request):
+    if request.user.is_authenticated:
+        if request.GET.get('dept'):
+            dept = Department.objects.filter(id=request.GET.get('dept'))
+            depart = Department.objects.get(id=request.GET.get('dept'))
+            accounts_without_group = Accounts.objects.filter(group__isnull=False,
+                                                                 department_id=request.GET.get('dept')).select_related(
+                    'group')
+
+                # Group accounts by their current group (in this case, it will only be 'Unassigned')
+            grouped_accounts = {f'{depart.name}': list(accounts_without_group)}
+
+            return render(request, 'account-group.html', {'grouped_accounts': grouped_accounts, 'department': dept})
+        else:
+
+            if request.user.role == '002':
+                accounts_without_group = Accounts.objects.filter(group__isnull=True).exclude(department_id__in=[17,13]).select_related('group')
+
+                # Group accounts by their current group (in this case, it will only be 'Unassigned')
+                grouped_accounts = {'Unassigned': list(accounts_without_group)}
+                dept = Department.objects.exclude(id__in=[17,13])
+
+                # Fetch all departments
+                print('admin')
+                return render(request, 'account-group.html', {'grouped_accounts': grouped_accounts, 'department': dept})
+
+
+            else:
+                accounts_without_group = Accounts.objects.filter(group__isnull=True,department_id= request.user.department.id).select_related('group')
+
+                # Group accounts by their current group (in this case, it will only be 'Unassigned')
+                grouped_accounts = {'Unassigned': list(accounts_without_group)}
+                dept = Department.objects.filter(id=request.user.department.id)
+                print('ordinary user')
+                return render(request, 'account-group.html', {'grouped_accounts': grouped_accounts, 'department': dept})
+
+
+def account_line_search(request):
+    year = FinancialYear.objects.get(is_active=True)
+    acc = request.GET.get('acc'
+                        )
+    lines = BudgetLines.objects.filter(account__acctid__icontains=acc,year=year.year).values('id','item_description')
+    if lines:
+        return  JsonResponse({'data':list(lines)},status=200)
+    else:
+        return JsonResponse({'data':{}},status=200)
+
+def vary_budget(request,object_id):
+    year = FinancialYear.objects.get(is_active=True)
+
+    line = get_object_or_404(BudgetLines, id=object_id, year=year.year)
+
+    active = get_object_or_404(BudgetVariations, is_active=True, year=year.year)
+    obj_t = get_object_or_404(BudgetTotals, account_id=line.account_id, budget_set=active.budget_set, year=year.year)
+    print(obj_t)
+    if active:
+        if request.user.role != '002':
+            single_object = BudgetTotals.objects.filter(budget_set=active.budget_set,
+                                                        department=request.user.department, year=year.year)
+        else:
+            single_object = BudgetTotals.objects.filter(budget_set=active.budget_set, year=year.year)
+
+
+        user = get_object_or_404(Users, id=request.user.id)
+       # obj = get_object_or_404(BudgetTotals, id=first_dept_obj.id, year=year.year)
+
+        context = {
+                'currency': Currency.objects.all(),
+                'name': line.account.acctdesc,
+                'obj': single_object,
+                'object': obj_t,
+                'activebs': active.budget_set,
+                'department': obj_t.department.name,
+                'line': line,
+                'budget_set': active.budget_set,
+            }
+
+    return render(request,"variation.html", context)
+def assign_group(request):
+    account = request.GET.get('account')
+    group = request.GET.get('group')
+    # Validate that both account and group are provided
+    if not account or not group:
+        return JsonResponse({'message': 'Account and group parameters are required.'}, status=400)
+
+    # Use get_object_or_404 to handle account retrieval
+    acc = get_object_or_404(Accounts, acctfmttd=account)
+
+    # Assign the group to the account
+    acc.group_id = group
+    acc.save()
+
+    return JsonResponse({'message': 'Successful'}, status=200)
+
+def department_group(request):
+    dept = request.GET.get('dept')
+    group = Group.objects.filter(department_id=dept).values('id','name')
+    return JsonResponse({'data': list(group) }, status=200)
 
 def opex_index(request):
     if request.user.is_authenticated:
-        obj = BudgetVariations.objects.get(is_active=True)
+        year = FinancialYear.objects.get(is_active=True)
+        obj = BudgetVariations.objects.get(is_active=True,year=year.year)
 
         # Combine all department conditions using Q objects
         department_conditions = Q()
@@ -2194,87 +3070,77 @@ def opex_index(request):
 
         # Fetch all relevant budget totals in a single query
         budget_totals = BudgetTotals.objects.filter(
-            Q(budget_set=obj.budget_set) & Q(posted=False) & department_conditions
+            Q(budget_set=obj.budget_set) & Q(year=year.year) & Q(posted=False) & department_conditions
         ).exclude(department_id=13).order_by('-department_id', '-account_id')
+        groups = Group.objects.all()
 
-        # Create separate variables for each department
-        ceo = budget_totals.filter(department_id=1)
-        paginator = Paginator(ceo, 10)
-        page_number = request.GET.get('page')
-        ceo_obj = paginator.get_page(page_number)
-        internal_audit = budget_totals.filter(department_id=2)
-        paginator = Paginator(internal_audit, 10)
-        page_number = request.GET.get('page')
-        internal_audit_obj = paginator.get_page(page_number)
-        supply_chain = budget_totals.filter(department_id=3)
-        paginator = Paginator(supply_chain, 10)
-        page_number = request.GET.get('page')
-        supply_chain_obj = paginator.get_page(page_number)
-        bds = budget_totals.filter(department_id=4)
-        paginator = Paginator(bds, 10)
-        page_number = request.GET.get('page')
-        bds_obj = paginator.get_page(page_number)
-        public_relations = budget_totals.filter(department_id=10)
-        paginator = Paginator(public_relations, 10)
-        page_number = request.GET.get('page')
-        public_relations_obj = paginator.get_page(page_number)
-        technical = budget_totals.filter(department_id=6)
-        paginator = Paginator(technical, 10)
-        page_number = request.GET.get('page')
-        technical_obj = paginator.get_page(page_number)
-        information_systems = budget_totals.filter(department_id=7)
-        paginator = Paginator(information_systems, 10)
-        page_number = request.GET.get('page')
-        information_systems_obj = paginator.get_page(page_number)
-        legal_risk = budget_totals.filter(department_id=8)
-        paginator = Paginator(legal_risk, 10)
-        page_number = request.GET.get('page')
-        legal_risk_obj = paginator.get_page(page_number)
-        human_capital = budget_totals.filter(department_id=9)
-        paginator = Paginator(human_capital, 10)
-        page_number = request.GET.get('page')
-        human_capital_obj = paginator.get_page(page_number)
-        sales_marketing = budget_totals.filter(department_id=10)
-        paginator = Paginator(sales_marketing, 10)
-        page_number = request.GET.get('page')
-        sales_marketing_obj = paginator.get_page(page_number)
-        admin = budget_totals.filter(department_id=11)
-        paginator = Paginator(admin, 10)
-        page_number = request.GET.get('page')
-        admin_page_obj = paginator.get_page(page_number)
-        finance = budget_totals.filter(department_id=12)
-        paginator = Paginator(finance, 10)
-        page_number = request.GET.get('page')
-        finance_page_obj = paginator.get_page(page_number)
-        staff_remuneration = budget_totals.filter(department_id=14)
-        paginator = Paginator(staff_remuneration, 10)
-        page_number = request.GET.get('page')
-        staff_n_page_obj = paginator.get_page(page_number)
-        print(staff_n_page_obj)
+        def get_paginated_data(budget_totals, department_id, per_page=10):
+            """Helper function to filter, paginate, and extract group IDs for a department."""
+            queryset = budget_totals.filter(department_id=department_id)
+            paginator = Paginator(queryset,per_page )
+            page_number = request.GET.get('page')
+            queryset_obj = paginator.get_page(page_number)
+            group_ids = Group.objects.filter(department_id=department_id, parent_group__isnull=True).order_by('name')
+
+            # Include sub-groups within each parent group
+            groups_with_subgroups = []
+            for group in group_ids:
+                sub_groups = Group.objects.filter(parent_group=group)
+                groups_with_subgroups.append((group, sub_groups))
+
+            return queryset_obj, groups_with_subgroups
+
+        # Your main view logic
+        ceo_obj, ceo_group_ids = get_paginated_data(budget_totals, 1)
+        internal_audit_obj, internal_audit_group_ids = get_paginated_data(budget_totals, 2)
+        supply_chain_obj, supply_chain_group_ids = get_paginated_data(budget_totals, 3)
+        bds_obj, bds_group_ids = get_paginated_data(budget_totals, 4)
+        public_relations_obj, public_relations_group_ids = get_paginated_data(budget_totals, 10)
+        technical_obj, technical_group_ids = get_paginated_data(budget_totals, 6)
+        information_systems_obj, information_systems_group_ids = get_paginated_data(budget_totals, 7)
+        legal_risk_obj, legal_risk_group_ids = get_paginated_data(budget_totals, 8)
+        human_capital_obj, human_capital_group_ids = get_paginated_data(budget_totals, 9)
+        sales_marketing_obj, sales_marketing_group_ids = get_paginated_data(budget_totals, 10)
+        admin_page_obj, admin_group_ids = get_paginated_data(budget_totals, 11)
+        finance_page_obj, finance_group_ids = get_paginated_data(budget_totals, 12)
+        staff_n_page_obj, staff_n_group_ids = get_paginated_data(budget_totals, 14)
         # Calculate total sum
         total_sum = budget_totals.aggregate(total_sum=Sum('total'))['total_sum']
         # Populate context variable
         context = {
-            'status':obj.is_complete,
-            'staff_remuneration':staff_n_page_obj,
+            'status': obj.is_complete,
             'ceo': ceo_obj,
+            'ceo_group_ids': ceo_group_ids,
             'internal_audit': internal_audit_obj,
+            'internal_audit_group_ids': internal_audit_group_ids,
             'supply_chain': supply_chain_obj,
+            'supply_chain_group_ids': supply_chain_group_ids,
             'bds': bds_obj,
+            'bds_group_ids': bds_group_ids,
             'public_relations': public_relations_obj,
+            'public_relations_group_ids': public_relations_group_ids,
             'technical': technical_obj,
+            'technical_group_ids': technical_group_ids,
             'information_systems': information_systems_obj,
+            'information_systems_group_ids': information_systems_group_ids,
             'legal_risk': legal_risk_obj,
+            'legal_risk_group_ids': legal_risk_group_ids,
             'human_capital': human_capital_obj,
+            'human_capital_group_ids': human_capital_group_ids,
             'sales_marketing': sales_marketing_obj,
+            'sales_marketing_group_ids': sales_marketing_group_ids,
             'admin': admin_page_obj,
+            'admin_group_ids': admin_group_ids,
+
             'finance': finance_page_obj,
+            'finance_group_ids': finance_group_ids,
+            'staff_n_page': staff_n_page_obj,
+            'staff_n_group_ids': staff_n_group_ids,
             'budget_set': obj.budget_set,
             'total': total_sum
         }
         return render(request, 'opex-index.html', context)
-    else:
-        return redirect('budgets:login')
+
 
 def reports(request):
     excel_header = [
@@ -2313,13 +3179,15 @@ def reports(request):
         'Q4 (Budget)',
         'Q4 (Actual)'
     ]
+    year = FinancialYear.objects.get(is_active=True)
 
     # Grouping the values according to quarters and halves
     budget_totals = defaultdict(lambda: defaultdict(Decimal))
     budget_object = BudgetTotals.objects.exclude(department_id=13)
     budget_actual_id = [obj.account_id for obj in budget_object]
-    budget_actuals = Glafs.objects.using('sql_server').filter(acctid__in=budget_actual_id, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                              fscsyr=2024)
+    budget_actuals = Glafs.objects.using('sql_server').filter(acctid__in=budget_actual_id, fscsdsg='A', fscscurn='ZMW',
+                                                              curntype='F',
+                                                              fscsyr=year.year)
     for budget_total, actual_total in zip(budget_object, budget_actuals):
         for netperd in range(1, 13):
             value_budget = getattr(budget_total, f'netperd{netperd}', Decimal('0'))
@@ -2339,6 +3207,7 @@ def reports(request):
                 budget_totals[budget_total.account][f'Q{quarter} (Actual)'] = quarter_value_actual
     return render(request, 'opex-reports.html')
 
+
 def changelog_report(request):
     excel_header = [
         'Account Number',
@@ -2352,10 +3221,11 @@ def changelog_report(request):
 
     # Grouping the values according to quarters and halves
     budget_totals = defaultdict(lambda: defaultdict(Decimal))
-    budget_object = ChangeLog.objects.values('user__firstname','account_id', 'account__acctdesc','amount','action','department')
+    budget_object = ChangeLog.objects.values('user__firstname', 'account_id', 'account__acctdesc', 'amount', 'action',
+                                             'department')
 
     for budget_total in budget_object:
-       pass
+        pass
     # Create a new Excel workbook
     workbook = Workbook()
     sheet = workbook.active
@@ -2369,8 +3239,6 @@ def changelog_report(request):
 
     # Writing the data rows
 
-
-
     # Create a HttpResponse with an Excel file attachment
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'inline; filename="changelog-export {datetime.today().date()}.xlsx"'
@@ -2379,6 +3247,7 @@ def changelog_report(request):
     workbook.save(response)
 
     return response
+
 
 def generate_excel_opex(request):
     # Define the header row for the Excel file
@@ -2419,13 +3288,14 @@ def generate_excel_opex(request):
         'Q4 (Actual)',
     ]
 
-
+    year = FinancialYear.objects.get(is_active=True)
     # Grouping the values according to quarters and halves
     budget_totals = defaultdict(lambda: defaultdict(Decimal))
-    budget_object = BudgetTotals.objects.exclude(department_id__in=[13,15,16])
+    budget_object = BudgetTotals.objects.exclude(department_id__in=[13, 15, 16])
     budget_actual_id = [obj.account_id for obj in budget_object]
-    budget_actuals = Glafs.objects.using('sql_server').filter(acctid__in=budget_actual_id, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                              fscsyr=2024)
+    budget_actuals = Glafs.objects.using('sql_server').filter(acctid__in=budget_actual_id, fscsdsg='A', fscscurn='ZMW',
+                                                              curntype='F',
+                                                              fscsyr=year.year)
     for budget_total, actual_total in zip(budget_object, budget_actuals):
         for netperd in range(1, 15):
             value_budget = getattr(budget_total, f'netperd{netperd}', Decimal('0'))
@@ -2464,13 +3334,13 @@ def generate_excel_opex(request):
                 sheet.cell(row=row, column=col, value=Decimal(totals[netperd]))
             elif 'netperd' in netperd:
                 sheet.cell(row=row, column=col, value=Decimal(totals[netperd]))
-            else :
+            else:
                 sheet.cell(row=row, column=col, value=totals[netperd])
 
     # Create a HttpResponse with an Excel file attachment
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'inline; filename="budget-export-opex {datetime.today().date()}.xlsx"'
-    
+
     # Save the workbook to the HttpResponse
     workbook.save(response)
 
@@ -2515,12 +3385,15 @@ def generate_excel_capex(request):
         'Q4 (Budget)',
         'Q4 (Actual)'
     ]
+    year = FinancialYear.objects.get(is_active=True)
+
     budget_object = BudgetTotals.objects.filter(department_id=13)
     # Grouping the values according to quarters and halves
     budget_totals = defaultdict(lambda: defaultdict(Decimal))
     budget_actual_id = [obj.account_id for obj in budget_object]
-    budget_actuals = Glafs.objects.using('sql_server').filter(acctid__in=budget_actual_id, fscsdsg='A', fscscurn ='ZMW' , curntype='F',
-                                                              fscsyr=2024)
+    budget_actuals = Glafs.objects.using('sql_server').filter(acctid__in=budget_actual_id, fscsdsg='A', fscscurn='ZMW',
+                                                              curntype='F',
+                                                              fscsyr=year.year)
     for budget_total, actual_total in zip(budget_object, budget_actuals):
         for netperd in range(1, 13):
             value_budget = getattr(budget_total, f'netperd{netperd}', Decimal('0'))
@@ -2558,7 +3431,7 @@ def generate_excel_capex(request):
             for col, netperd in enumerate(excel_header[1:], start=2):
                 if 'Q' in netperd:
                     sheet.cell(row=row, column=col, value=Decimal(totals[netperd]))
-                elif 'netperd'in netperd:
+                elif 'netperd' in netperd:
                     sheet.cell(row=row, column=col, value=Decimal(totals[netperd]))
                 else:
                     sheet.cell(row=row, column=col, value=totals[netperd])
@@ -2575,7 +3448,9 @@ def generate_excel_capex(request):
 
 def department_budget_settings(request, dept_id):
     if request.user.is_authenticated:
-        obj = BudgetStatus.objects.filter(department_id=dept_id).all()
+        year = FinancialYear.objects.get(is_active=True)
+        obj = BudgetStatus.objects.filter(department_id=dept_id, year=year.year).all()
+
         if request.GET.get('complete') == '1':
             if request.user.role != '002':
                 message = f"{request.GET.get('budget_id')} from {request.user.department.name} department has been marked as complete"
@@ -2589,9 +3464,39 @@ def department_budget_settings(request, dept_id):
                     }
                 )
             BudgetStatus.objects.filter(department=request.user.department,
-                                        budget_set=request.GET.get('budget_id')).update(is_complete=True,
-                                                                                        comment=request.GET.get(
-                                                                                            'comment'))
+                                        budget_set=request.GET.get('budget_id'), year=year.year).update(
+                is_complete=True,
+                comment=request.GET.get(
+                    'comment'))
+            mail_list = Users.objects.filter(email='seriterk@gmail.com').values('email','first_name')
+            for user in mail_list:
+                receiver_email = user['email']
+                receiver_name = user['first_name']
+
+                # Prepare the context for rendering the email template
+                context = {
+                    "receiver": receiver_name,  # Use 'receiver' as per your template variable
+                    "message": message,
+                }
+
+                # Define the template name for the HTML email
+                template_name = "templates/status-change-mail.html"
+
+                # Render the HTML content from the template
+                convert_to_html_content = render_to_string(template_name, context)
+
+                # Strip HTML tags for plain text version of the email
+                plain_message = strip_tags(convert_to_html_content)
+
+                # Send the email
+                yo_send_it = send_mail(
+                    subject="Budget Module Notification",
+                    message=plain_message,
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=[receiver_email],  # Send to one recipient at a time
+                    html_message=convert_to_html_content,
+                    fail_silently=True  # Optional: Set to False to raise errors during sending
+                )
             return JsonResponse({'result': 'success'})
         elif request.GET.get('incomplete') == '1':
             if request.user.role != '002':
@@ -2607,7 +3512,7 @@ def department_budget_settings(request, dept_id):
                     }
                 )
             budget = request.GET.get('budget_id')
-            BudgetStatus.objects.filter(department=request.user.department, budget_set=budget).update(
+            BudgetStatus.objects.filter(department=request.user.department, budget_set=budget, year=year.year).update(
                 is_complete=False,
                 comment=request.GET.get(
                     'comment'))
@@ -2619,7 +3524,9 @@ def department_budget_settings(request, dept_id):
 
 def budget_settings(request):
     if request.user.is_authenticated:
-        obj = BudgetStatus.objects.all()
+        year = FinancialYear.objects.get(is_active=True)
+
+        obj = BudgetStatus.objects.filter(year=year.year).all()
         if request.GET.get('complete') == '1':
             if request.user.role != '002':
                 message = f"{request.GET.get('budget_id')} from {request.user.department.name} department has been marked as complete"
@@ -2633,10 +3540,11 @@ def budget_settings(request):
                     }
                 )
             BudgetStatus.objects.filter(department=request.user.department,
-                                        budget_set=request.GET.get('budget_id')).update(is_complete=True,
+                                        budget_set=request.GET.get('budget_id'), year=year.year).update(
+                is_complete=True,
 
-                                                                                        comment=request.GET.get(
-                                                                                            'comment'))
+                comment=request.GET.get(
+                    'comment'))
             return JsonResponse({'result': 'success'})
         elif request.GET.get('incomplete') == '1':
             if request.user.role != '002':
@@ -2652,12 +3560,16 @@ def budget_settings(request):
                     }
                 )
             budget = request.GET.get('budget_id')
-            BudgetStatus.objects.filter(department=request.user.department, budget_set=budget).update(
+            BudgetStatus.objects.filter(department=request.user.department, budget_set=budget, year=year.year).update(
                 is_complete=False,
                 comment=request.GET.get(
                     'comment'))
             return JsonResponse({'result': 'success'})
-        return render(request, 'budget-settings.html', {'budgetStatus': obj})
+        toggle_init = ChangeLog.objects.get(year=year.year)
+        toggle = False
+        if toggle_init.flag == True:
+            toggle=True
+        return render(request, 'budget-settings.html', {'budgetStatus': obj, 'toggle':toggle})
     else:
         return redirect('budgets:login')
 
@@ -2702,6 +3614,8 @@ def budget_assumptions(request):
 
 
 def accounts_search(request):
+    year = FinancialYear.objects.get(is_active=True)
+    obj = BudgetVariations.objects.get(is_active=True,year=year.year)
     field_mapping = {
         'account_id': 'account__acctid__icontains',
         'account_name': 'account__acctdesc__icontains',
@@ -2712,34 +3626,42 @@ def accounts_search(request):
     dept = request.GET.get('department')
     active = BudgetVariations.objects.filter(is_active=True).values('budget_set')
     if dept:
-        account_info = BudgetTotals.objects.filter(budget_set='Budget 1', **{field_mapping[filter]: value},
-                                                   department_id=dept).values('id', 'total', 'account_id',
-                                                                           'account__acctdesc', 'year',
-                                                                           'currency__currency', 'netperd1',
-                                                                           'netperd2', 'netperd3', 'netperd4',
-                                                                           'netperd5', 'netperd6', 'netperd7',
-                                                                           'netperd8', 'netperd9', 'netperd10',
-                                                                           'netperd11', 'netperd12').all()
+        account_info = BudgetTotals.objects.filter(budget_set=obj.budget_set, **{field_mapping[filter]: value},
+                                                   department_id=dept, year=year.year).values('id', 'total',
+                                                                                              'account_id',
+                                                                                              'account__acctdesc',
+                                                                                              'year',
+                                                                                              'currency__currency',
+                                                                                              'netperd1',
+                                                                                              'netperd2', 'netperd3',
+                                                                                              'netperd4',
+                                                                                              'netperd5', 'netperd6',
+                                                                                              'netperd7',
+                                                                                              'netperd8', 'netperd9',
+                                                                                              'netperd10',
+                                                                                              'netperd11',
+                                                                                              'netperd12').all()
         print(account_info)
         return JsonResponse({'data': list(account_info)}, status=200)
     else:
         if filter in field_mapping and value:
             if request.user.role != '002':
-                account_info = BudgetTotals.objects.filter(budget_set='Budget 1',
+                account_info = BudgetTotals.objects.filter(budget_set=obj.budget_set,
                                                            **{field_mapping[filter]: value},
-                                                           department=request.user.department).values(
+                                                           department=request.user.department, year=year.year).values(
                     'account_id', 'account__acctdesc', 'id').all()
                 return JsonResponse({'data': list(account_info)}, status=200)
             else:
-                account_info = BudgetTotals.objects.filter(budget_set='Budget 1',
-                                                           **{field_mapping[filter]: value}).values(
+                account_info = BudgetTotals.objects.filter(budget_set=obj.budget_set,
+                                                           **{field_mapping[filter]: value}, year=year.year).values(
                     'account_id', 'account__acctdesc', 'id').all()
                 return JsonResponse({'data': list(account_info)}, status=200)
 
 
 def get_budget_set(request, object_id, budget_set):
+    year = FinancialYear.objects.get(is_active=True)
     single_object = BudgetTotals.objects.all()
-    obj = get_object_or_404(BudgetTotals, id=object_id, budget_set=budget_set)
+    obj = get_object_or_404(BudgetTotals, id=object_id, budget_set=budget_set, year=year.year)
 
     next_obj = BudgetTotals.objects.filter(id__gt=obj.id).order_by('id').first()
     prev_obj = BudgetTotals.objects.filter(id__lt=obj.id).order_by('-id').first()
@@ -2814,27 +3736,20 @@ def toggle_status_complete(request, id):
 
 
 def toggle_status_false(request, id):
-    budget_obj = BudgetStatus.objects.get(id=id)
-    budget_set = BudgetVariations.objects.get(budget_set=budget_obj.budget_set)
-    budget_set.is_active = False
-    budget_set.save()
-    budget_obj.is_active = False
-    budget_obj.save()
-    BudgetStatus.objects.filter(budget_set=budget_obj.budget_set).update(is_active=False)
+    year = FinancialYear.objects.get(is_active=True)
+    BudgetStatus.objects.filter(budget_set=id, year=year.year).update(is_active=False)
+    BudgetVariations.objects.filter(budget_set=id, year=year.year).update(is_active=False)
 
     return redirect('budgets:settings')
 
 
 def toggle_status_true(request, id):
     try:
-        budget_obj = BudgetStatus.objects.get(id=id)
-        budget_obj.is_active = True
-        BudgetStatus.objects.filter(budget_set=budget_obj.budget_set).update(is_active=True)
-        budget_set = BudgetVariations.objects.get(budget_set=budget_obj.budget_set)
-
-        budget_set.is_active = True
-        budget_set.save()
-        budget_obj.save()
+        year = FinancialYear.objects.get(is_active=True)
+        BudgetStatus.objects.filter(budget_set=id, year=year.year).update(is_active=True)
+        BudgetStatus.objects.exclude(budget_set=id, year=year.year).update(is_active=False)
+        BudgetVariations.objects.filter(budget_set=id, year=year.year).update(is_active=True)
+        BudgetVariations.objects.exclude(budget_set=id, year=year.year).update(is_active=False)
         return redirect('budgets:settings')
     except ValidationError as e:
         messages.error(request, e.message)
@@ -2843,12 +3758,13 @@ def toggle_status_true(request, id):
 
 def clear_budget_line(request, object_id):
     line = get_object_or_404(BudgetLines, id=object_id)
-    active = get_object_or_404(BudgetVariations,active=True)
-
-    dept = get_object_or_404(BudgetTotals, account_id=line.account_id, budget_set=active.budget_set)
+    active = get_object_or_404(BudgetVariations, is_active=True)
+    year = FinancialYear.objects.get(is_active=True)
+    dept = get_object_or_404(BudgetTotals, account_id=line.account_id, budget_set=active.budget_set, year=year.year)
     if dept:
         with transaction.atomic():
-            BudgetTotals.objects.filter(account_id=line.account.acctid, budget_set=active.budget_set).update(
+            BudgetTotals.objects.filter(account_id=line.account.acctid, budget_set=active.budget_set,
+                                        year=year.year).update(
                 total=F('total') - line.total,
                 netperd1=F('netperd1') - line.netperd1,
                 netperd2=F('netperd2') - line.netperd2,
@@ -2866,16 +3782,22 @@ def clear_budget_line(request, object_id):
                 last_updated_by_id=request.user.id
             )
             line.delete()
+
     return redirect('budgets:update', dept.id)
 
 
+
+
 def clear_budget_numbers(request, object_id):
-    active = get_object_or_404(BudgetVariations,active=True)
+    active = get_object_or_404(BudgetVariations, active=True)
     line = get_object_or_404(BudgetTotals, id=object_id)
+    year = FinancialYear.objects.get(is_active=True)
     if line:
-        BudgetLines.objects.filter(account_id = line.account.acctid, budget_set=active.budget_set).delete()
+        BudgetLines.objects.filter(account_id=line.account.acctid, budget_set=active.budget_set,
+                                   year=year.year).delete()
         with transaction.atomic():
-            BudgetTotals.objects.filter(account_id=line.account.acctid, budget_set=active.budget_set).update(
+            BudgetTotals.objects.filter(account_id=line.account.acctid, budget_set=active.budget_set,
+                                        year=year.year).update(
                 total=F('total') - line.total,
                 netperd1=F('netperd1') - line.netperd1,
                 netperd2=F('netperd2') - line.netperd2,
@@ -2899,70 +3821,71 @@ def clear_budget_numbers(request, object_id):
 def changelog(request):
     if request.user.is_authenticated:
         obj = BudgetLinesLog.objects.all()
-        obj = BudgetVariations.objects.get(is_active=True)
 
+        year = FinancialYear.objects.get(is_active=True)
+        obj = BudgetVariations.objects.get(is_active=True, year=year.year)
         # Combine all department conditions using Q objects
         department_conditions = Q()
         for department_id in range(1, 15):  # Assuming departments IDs range from 1 to 12
             department_conditions |= Q(department_id=department_id)
 
         # Fetch all relevant budget totals in a single query
-        budget_totals = BudgetLinesLog.objects.all().order_by( '-account_id')
+        budget_totals = BudgetLinesLog.objects.filter(year=year.year).order_by('-account_id')
 
         # Create separate variables for each department
-        ceo = budget_totals.filter(department='CEO')
+        ceo = budget_totals.filter(department_id=1)
         paginator = Paginator(ceo, 10)
         page_number = request.GET.get('page')
         ceo_obj = paginator.get_page(page_number)
-        internal_audit = budget_totals.filter(department='INTERNAL AUDIT')
+        internal_audit = budget_totals.filter(department_id=2)
         paginator = Paginator(internal_audit, 10)
         page_number = request.GET.get('page')
         internal_audit_obj = paginator.get_page(page_number)
-        supply_chain = budget_totals.filter(department='SUPPLY CHAIN')
+        supply_chain = budget_totals.filter(department_id=3)
         paginator = Paginator(supply_chain, 10)
         page_number = request.GET.get('page')
         supply_chain_obj = paginator.get_page(page_number)
-        bds = budget_totals.filter(department='BDS')
+        bds = budget_totals.filter(department_id=4)
         paginator = Paginator(bds, 10)
         page_number = request.GET.get('page')
         bds_obj = paginator.get_page(page_number)
-        public_relations = budget_totals.filter(department='PUBLIC RELATIONS')
+        public_relations = budget_totals.filter(department_id=5)
         paginator = Paginator(public_relations, 10)
         page_number = request.GET.get('page')
         public_relations_obj = paginator.get_page(page_number)
-        technical = budget_totals.filter(department='TECHNICAL')
+        technical = budget_totals.filter(department_id=6)
         paginator = Paginator(technical, 10)
         page_number = request.GET.get('page')
         technical_obj = paginator.get_page(page_number)
-        information_systems = budget_totals.filter(department='INFORMATION SYSTEMS')
+        information_systems = budget_totals.filter(department_id=7)
         paginator = Paginator(information_systems, 10)
         page_number = request.GET.get('page')
         information_systems_obj = paginator.get_page(page_number)
-        legal_risk = budget_totals.filter(department='LEGAL AND RISK')
+        legal_risk = budget_totals.filter(department_id=8)
         paginator = Paginator(legal_risk, 10)
         page_number = request.GET.get('page')
         legal_risk_obj = paginator.get_page(page_number)
-        human_capital = budget_totals.filter(department='HUMAN CAPITAL')
+        human_capital = budget_totals.filter(department_id=9)
         paginator = Paginator(human_capital, 10)
         page_number = request.GET.get('page')
         human_capital_obj = paginator.get_page(page_number)
-        sales_marketing = budget_totals.filter(department='SALES AND MARKETING')
+        sales_marketing = budget_totals.filter(department_id=10)
         paginator = Paginator(sales_marketing, 10)
         page_number = request.GET.get('page')
         sales_marketing_obj = paginator.get_page(page_number)
-        admin = budget_totals.filter(department='ADMINISTRATION')
+        admin = budget_totals.filter(department_id=11)
         paginator = Paginator(admin, 10)
         page_number = request.GET.get('page')
         admin_page_obj = paginator.get_page(page_number)
-        finance = budget_totals.filter(department='FINANCE')
+        finance = budget_totals.filter(department_id=12)
         paginator = Paginator(finance, 10)
         page_number = request.GET.get('page')
         finance_page_obj = paginator.get_page(page_number)
-        staff_remuneration = budget_totals.filter(department='STAFF AND RENUMERATIONS')
+        staff_remuneration = budget_totals.filter(department_id=14)
         paginator = Paginator(staff_remuneration, 10)
         page_number = request.GET.get('page')
         staff_n_page_obj = paginator.get_page(page_number)
-        assets = budget_totals.filter(department='ASSETS')
+        assets = budget_totals.filter(department_id=13)
         paginator = Paginator(assets, 10)
         page_number = request.GET.get('page')
         assets = paginator.get_page(page_number)
@@ -2989,40 +3912,133 @@ def changelog(request):
         return render(request, 'changelog.html', context)
     else:
         return redirect('budgets:login')
+def variationchangelog(request):
+    if request.user.is_authenticated:
+
+
+        year = FinancialYear.objects.get(is_active=True)
+        obj = BudgetVariations.objects.get(is_active=True, year=year.year)
+        # Combine all department conditions using Q objects
+        department_conditions = Q()
+        for department_id in range(1, 15):  # Assuming departments IDs range from 1 to 12
+            department_conditions |= Q(department_id=department_id)
+
+        # Fetch all relevant budget totals in a single query
+        budget_totals = BudgetLinesLogVariations.objects.filter(year=year.year).order_by('-account_id')
+
+        # Create separate variables for each department
+        ceo = budget_totals.filter(department_id=1)
+        paginator = Paginator(ceo, 10)
+        page_number = request.GET.get('page')
+        ceo_obj = paginator.get_page(page_number)
+        internal_audit = budget_totals.filter(department_id=2)
+        paginator = Paginator(internal_audit, 10)
+        page_number = request.GET.get('page')
+        internal_audit_obj = paginator.get_page(page_number)
+        supply_chain = budget_totals.filter(department_id=3)
+        paginator = Paginator(supply_chain, 10)
+        page_number = request.GET.get('page')
+        supply_chain_obj = paginator.get_page(page_number)
+        bds = budget_totals.filter(department_id=4)
+        paginator = Paginator(bds, 10)
+        page_number = request.GET.get('page')
+        bds_obj = paginator.get_page(page_number)
+        public_relations = budget_totals.filter(department_id=5)
+        paginator = Paginator(public_relations, 10)
+        page_number = request.GET.get('page')
+        public_relations_obj = paginator.get_page(page_number)
+        technical = budget_totals.filter(department_id=6)
+        paginator = Paginator(technical, 10)
+        page_number = request.GET.get('page')
+        technical_obj = paginator.get_page(page_number)
+        information_systems = budget_totals.filter(department_id=7)
+        paginator = Paginator(information_systems, 10)
+        page_number = request.GET.get('page')
+        information_systems_obj = paginator.get_page(page_number)
+        legal_risk = budget_totals.filter(department_id=8)
+        paginator = Paginator(legal_risk, 10)
+        page_number = request.GET.get('page')
+        legal_risk_obj = paginator.get_page(page_number)
+        human_capital = budget_totals.filter(department_id=9)
+        paginator = Paginator(human_capital, 10)
+        page_number = request.GET.get('page')
+        human_capital_obj = paginator.get_page(page_number)
+        sales_marketing = budget_totals.filter(department_id=10)
+        paginator = Paginator(sales_marketing, 10)
+        page_number = request.GET.get('page')
+        sales_marketing_obj = paginator.get_page(page_number)
+        admin = budget_totals.filter(department_id=11)
+        paginator = Paginator(admin, 10)
+        page_number = request.GET.get('page')
+        admin_page_obj = paginator.get_page(page_number)
+        finance = budget_totals.filter(department_id=12)
+        paginator = Paginator(finance, 10)
+        page_number = request.GET.get('page')
+        finance_page_obj = paginator.get_page(page_number)
+        staff_remuneration = budget_totals.filter(department_id=14)
+        paginator = Paginator(staff_remuneration, 10)
+        page_number = request.GET.get('page')
+        staff_n_page_obj = paginator.get_page(page_number)
+        assets = budget_totals.filter(department_id=13)
+        paginator = Paginator(assets, 10)
+        page_number = request.GET.get('page')
+        assets = paginator.get_page(page_number)
+        # Calculate total sum
+        # Populate context variable
+        context = {
+            'staff_remuneration': staff_n_page_obj,
+            'ceo': ceo_obj,
+            'internal_audit': internal_audit_obj,
+            'supply_chain': supply_chain_obj,
+            'bds': bds_obj,
+            'public_relations': public_relations_obj,
+            'technical': technical_obj,
+            'information_systems': information_systems_obj,
+            'legal_risk': legal_risk_obj,
+            'human_capital': human_capital_obj,
+            'sales_marketing': sales_marketing_obj,
+            'admin': admin_page_obj,
+            'finance': finance_page_obj,
+            'assets': assets,
+            'budget_set': obj.budget_set,
+        }
+
+        return render(request, 'variationlog.html', context)
+    else:
+        return redirect('budgets:login')
 
 
 def update(request, object_id):
     if request.user.is_authenticated:
-
-        obj_t = get_object_or_404(BudgetTotals, id=object_id)
-        lines = BudgetLines.objects.filter(account__acctid=obj_t.account.acctid)
-
-        active = get_object_or_404(BudgetVariations, is_active=True)
+        year = FinancialYear.objects.get(is_active=True)
+        obj_t = get_object_or_404(BudgetTotals, id=object_id, year=year.year)
+        lines = BudgetLines.objects.filter(account__acctid=obj_t.account.acctid, year=year.year)
+        active = get_object_or_404(BudgetVariations, is_active=True,year=year.year)
         if active:
             if request.user.role != '002':
                 single_object = BudgetTotals.objects.filter(budget_set=active.budget_set,
-                                                            department=request.user.department)
+                                                            department=request.user.department, year=year.year)
             else:
-                single_object = BudgetTotals.objects.filter(budget_set=active.budget_set)
+                single_object = BudgetTotals.objects.filter(budget_set=active.budget_set, year=year.year)
 
             first_dept_obj = BudgetTotals.objects.filter(budget_set=active.budget_set,
                                                          department_id=obj_t.department.id,
-                                                         id=object_id).first()
+                                                         id=object_id, year=year.year).first()
             user = get_object_or_404(Users, id=request.user.id)
-            obj = get_object_or_404(BudgetTotals, id=first_dept_obj.id)
+            obj = get_object_or_404(BudgetTotals, id=first_dept_obj.id, year=year.year)
             if request.user.role != '002':
                 assumptions = BudgetAssumptions.objects.filter(department=request.user.department)
             else:
                 assumptions = BudgetAssumptions.objects.all()
             next_obj = BudgetTotals.objects.filter(id__gt=obj.id, department_id=obj_t.department.id,
-                                                   budget_set=active.budget_set).order_by('id').first()
+                                                   budget_set=active.budget_set, year=year.year).order_by('id').first()
             prev_obj = BudgetTotals.objects.filter(id__lt=obj.id, department_id=obj_t.department.id,
-                                                   budget_set=active.budget_set).order_by('-id').first()
+                                                   budget_set=active.budget_set, year=year.year).order_by('-id').first()
 
             first_obj = BudgetTotals.objects.filter(department_id=obj_t.department.id,
-                                                    budget_set=active.budget_set).first()
+                                                    budget_set=active.budget_set, year=year.year).first()
             last_obj = BudgetTotals.objects.filter(department_id=obj_t.department.id,
-                                                   budget_set=active.budget_set).last()
+                                                   budget_set=active.budget_set, year=year.year).last()
 
             form = BudgetEditForm()
 
@@ -3031,26 +4047,39 @@ def update(request, object_id):
                 data = json.loads(request.body)
                 currency_obj = get_object_or_404(Currency, id=data['currency'])
                 with transaction.atomic():
-                    BudgetTotals.objects.filter(id=object_id).update(last_updated=datetime.now(),
-                                                                     last_updated_by_id=request.user.id,
+                    BudgetTotals.objects.filter(id=object_id, year=year.year).update(last_updated=datetime.now(),
+                                                                                     last_updated_by_id=request.user.id,
 
-                                                                     total=F('total') + data['total'],
-                                                                     netperd1=F('netperd1') + data['netperd1'],
-                                                                     netperd2=F('netperd2') + data['netperd2'],
-                                                                     netperd3=F('netperd3') + data['netperd3'],
-                                                                     netperd4=F('netperd4') + data['netperd4'],
-                                                                     netperd5=F('netperd5') + data['netperd5'],
-                                                                     netperd6=F('netperd6') + data['netperd6'],
-                                                                     netperd7=F('netperd7') + data['netperd7'],
-                                                                     netperd8=F('netperd8') + data['netperd8'],
-                                                                     netperd9=F('netperd9') + data['netperd9'],
-                                                                     netperd10=F('netperd10') + data['netperd10'],
-                                                                     netperd11=F('netperd11') + data['netperd11'],
-                                                                     netperd12=F('netperd12') + data['netperd12']
-                                                                     )
+                                                                                     total=F('total') + data['total'],
+                                                                                     netperd1=F('netperd1') + data[
+                                                                                         'netperd1'],
+                                                                                     netperd2=F('netperd2') + data[
+                                                                                         'netperd2'],
+                                                                                     netperd3=F('netperd3') + data[
+                                                                                         'netperd3'],
+                                                                                     netperd4=F('netperd4') + data[
+                                                                                         'netperd4'],
+                                                                                     netperd5=F('netperd5') + data[
+                                                                                         'netperd5'],
+                                                                                     netperd6=F('netperd6') + data[
+                                                                                         'netperd6'],
+                                                                                     netperd7=F('netperd7') + data[
+                                                                                         'netperd7'],
+                                                                                     netperd8=F('netperd8') + data[
+                                                                                         'netperd8'],
+                                                                                     netperd9=F('netperd9') + data[
+                                                                                         'netperd9'],
+                                                                                     netperd10=F('netperd10') + data[
+                                                                                         'netperd10'],
+                                                                                     netperd11=F('netperd11') + data[
+                                                                                         'netperd11'],
+                                                                                     netperd12=F('netperd12') + data[
+                                                                                         'netperd12']
+                                                                                     )
                 if data['entryType'] == 'function':
                     assumption_obj = get_object_or_404(BudgetAssumptions, factor=data['assumption'])
                     BudgetLines.objects.create(
+                        year=year.year,
                         account=obj.account,
                         exchange_rate=data['exchange_rate'],
                         item_description=data['item_description'],
@@ -3082,6 +4111,7 @@ def update(request, object_id):
 
                     BudgetLines.objects.create(
                         account=obj.account,
+                        year=year.year,
                         exchange_rate=data['exchange_rate'],
                         department=obj.department,
                         total=Decimal(data['total']),
@@ -3130,14 +4160,258 @@ def update(request, object_id):
     else:
         return redirect('budgets:login')
 
+def is_numeric(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
+def vary_lines(request):
+    year = FinancialYear.objects.get(is_active=True)
+    active = get_object_or_404(BudgetVariations, is_active=True, year=year.year)
+
+    form = json.loads(request.body)
+    if is_numeric(form.get('to_line')):
+        amount = Decimal(form.get('from_amount'))
+        period = form.get('to_period')
+        fromPeriod = form.get('from_period')
+
+        fromLine = get_object_or_404(BudgetLines, id=form.get('from_line'), year=year.year)
+        fromTotal = get_object_or_404(BudgetTotals, account_id=fromLine.account_id, budget_set=active.budget_set,
+                                      year=year.year)
+
+        # Check if we're updating the same line
+        same_line = str(form.get('from_line')) == str(form.get('to_line'))
+
+        if not same_line:
+            toLine = get_object_or_404(BudgetLines, id=form.get('to_line'), year=year.year)
+            toTotal = get_object_or_404(BudgetTotals, account_id=toLine.account_id, budget_set=active.budget_set,
+                                        year=year.year)
+        else:
+            toLine = fromLine
+            toTotal = fromTotal
+
+        current_timestamp = datetime.now()
+        fromLine.timestamp = current_timestamp
+        fromTotal.timestamp = current_timestamp
+        toLine.timestamp = current_timestamp
+        toTotal.timestamp = current_timestamp
+
+        # For same line updates, we need to handle the calculations differently
+        if same_line and period == fromPeriod:
+            # If moving within the same period of the same line, no action needed
+            return JsonResponse({'message': 'success'}, status=200)
+
+        # Calculate all changes before saving
+        changes = {}
+
+        # Calculate changes for the source period
+        netperd_field_from = f'{fromPeriod}'
+        if hasattr(fromLine, netperd_field_from):
+            current_value = getattr(fromLine, netperd_field_from, 0)
+            changes['from_value'] = current_value - amount
+            # Only adjust the total if it's not the same line
+            if not same_line:
+                changes['from_total'] = fromLine.total - amount
+            else:
+                changes['from_total'] = fromLine.total  # Keep the total unchanged for same line
+
+        # Calculate changes for the destination period
+        netperd_field_to = f'{period}'
+        if hasattr(toLine, netperd_field_to):
+            current_value = getattr(toLine, netperd_field_to, 0)
+            changes['to_value'] = current_value + amount
+            # Only adjust the total if it's not the same line
+            if not same_line:
+                changes['to_total'] = toLine.total + amount
+            else:
+                changes['to_total'] = toLine.total  # Keep the total unchanged for same line
+
+        # Apply all changes
+        if 'from_value' in changes:
+            setattr(fromLine, netperd_field_from, changes['from_value'])
+            fromLine.total = changes['from_total']
+
+            if hasattr(fromTotal, netperd_field_from):
+                current_value = getattr(fromTotal, netperd_field_from, 0)
+                setattr(fromTotal, netperd_field_from, current_value - amount)
+            if hasattr(fromTotal, 'total') and not same_line:
+                current_value = getattr(fromTotal, 'total', 0)
+                setattr(fromTotal, 'total', current_value - amount)
+
+        if 'to_value' in changes:
+            setattr(toLine, netperd_field_to, changes['to_value'])
+            toLine.total = changes['to_total']
+
+            if hasattr(toTotal, netperd_field_to):
+                current_value = getattr(toTotal, netperd_field_to, 0)
+                setattr(toTotal, netperd_field_to, current_value + amount)
+            if hasattr(toTotal, 'total') and not same_line:
+                current_value = getattr(toTotal, 'total', 0)
+                setattr(toTotal, 'total', current_value + amount)
+
+        # Save all changes
+        fromLine.save()
+        fromTotal.save()
+        if not same_line:
+            toLine.save()
+            toTotal.save()
+
+        # Create log entries
+        BudgetLinesLogVariations.objects.create(
+            timestamp=current_timestamp,
+            user=request.user,
+            action="removed",
+            item_description=fromLine.item_description,
+            account=fromLine.account,
+            department=fromLine.department,
+            period=form.get('from_period'),
+            amount=-amount,
+            year=year.year,
+            comment=form.get('comment')
+        )
+
+        BudgetLinesLogVariations.objects.create(
+            timestamp=current_timestamp,
+            user=request.user,
+            action="added",
+            item_description=toLine.item_description,
+            account=toLine.account,
+            department=toLine.department,
+            period=form.get('to_period'),
+            amount=amount,
+            year=year.year,
+            comment=form.get('comment')
+        )
+    else:
+        amount = form.get('from_amount')
+        account = form.get('to_account')
+        period = form.get('to_period')
+        fromPeriod = form.get('from_period')
+
+        fromLine = get_object_or_404(BudgetLines, id=form.get('from_line'), year=year.year)
+        fromTotal = get_object_or_404(BudgetTotals, account_id=fromLine.account_id, budget_set=active.budget_set,
+                                      year=year.year)
+
+        fromLine.timestamp = datetime.now()
+        fromTotal.timestamp = datetime.now()
+
+
+        # Updates values of affected periods of from account
+        netperd_field_from = f'{fromPeriod}'  # Create the field name dynamically, e.g., 'netperd1', 'netperd2', etc.
+        if hasattr(fromLine, netperd_field_from):
+            current_value = getattr(fromLine, netperd_field_from, 0)  # Get the current value, default to 0 if None
+            new_value = current_value - Decimal(amount)  # Subtract the amount from the current value
+
+            setattr(fromLine, netperd_field_from, new_value)
+            fromLine.total = fromLine.total - Decimal(amount)
+
+        if hasattr(fromTotal, netperd_field_from):
+            current_value = getattr(fromTotal, netperd_field_from, 0)
+            new_value = current_value - Decimal(amount)
+            setattr(fromTotal, netperd_field_from, new_value)
+        if hasattr(fromTotal, 'total'):
+            current_value = getattr(fromTotal, 'total', 0)
+            new_value = current_value - Decimal(amount)
+            setattr(fromTotal, 'total', new_value)
+        fromLine.save()
+        fromTotal.save()
+
+        BudgetLinesLogVariations.objects.create(
+            timestamp=datetime.now(),
+            user=request.user,
+            action="removed",
+            item_description=fromLine.item_description,
+            account=fromLine.account,
+            department=fromLine.department,
+            period=form.get('from_period'),
+            amount=-Decimal(form.get('from_amount')),
+            year=year.year,
+            comment = form.get('comment')
+        )
+
+        acc = Accounts.objects.get(acctid=account)
+        netperd_fields = {f'netperd{i}': Decimal(0) for i in range(1, 13)}
+        update_fields = {f'netperd{i}': Decimal(0) for i in range(1, 13)}
+
+        # Assign the amount to the specific period
+        netperd_fields[form.get('to_period')] = amount
+        update_fields[form.get('to_period')] = F(period) + amount
+        BudgetTotals.objects.filter(account_id = account, year=year.year).update(
+            last_updated=datetime.now(),
+            last_updated_by_id=request.user.id,
+            total=F('total') + amount,  # Update total amount
+            **update_fields  # Dynamically pass all period updates
+        )
+        BudgetLines.objects.create(
+            account_id=account,
+            year=year.year,
+            exchange_rate=1.0,
+            department_id=acc.department_id,
+            total=amount,
+            item_description=form.get('to_line'),
+            rate=Decimal(0),
+            usage=Decimal(0),
+            factor=Decimal(0),
+            staff=Decimal(0),
+            **netperd_fields,
+            currency_id=1,
+            budget_set=active.budget_set,
+            last_updated=datetime.now(),
+            last_updated_by_id=request.user.id)
+
+        BudgetLinesLogVariations.objects.create(
+                timestamp=datetime.now(),
+                user=request.user,
+                action="added",
+                item_description=form.get('to_line'),
+                account=acc,
+                department_id=acc.department_id,
+                period=form.get('to_period'),
+                amount=Decimal(form.get('from_amount')),
+                year=year.year,
+                comment = form.get('comment')
+        )
+
+
+    return JsonResponse({'message': 'success'}, status=200)
+
+
+
+def log_budget_line_action(budget_line, action, user):
+    BudgetLinesLog.objects.create(
+        user=user,
+        action=action,
+        amount=budget_line.total,  # You can log a specific amount or total
+        item_description=budget_line.item_description,
+        account=budget_line.account,
+        total=budget_line.total,
+        netperd1=budget_line.netperd1,
+        netperd2=budget_line.netperd2,
+        netperd3=budget_line.netperd3,
+        netperd4=budget_line.netperd4,
+        netperd5=budget_line.netperd5,
+        netperd6=budget_line.netperd6,
+        netperd7=budget_line.netperd7,
+        netperd8=budget_line.netperd8,
+        netperd9=budget_line.netperd9,
+        netperd10=budget_line.netperd10,
+        netperd11=budget_line.netperd11,
+        netperd12=budget_line.netperd12,
+        department = budget_line.department,
+        year=budget_line.year
+    )
 
 def edit_line(request, object_id):
     if request.user.is_authenticated:
-        active = get_object_or_404(BudgetVariations, is_active=True)
 
-        line = get_object_or_404(BudgetLines, id=object_id)
-        obj_t = get_object_or_404(BudgetTotals, account__acctid=line.account.acctid, budget_set=active.budget_set)
-        lines = BudgetLines.objects.filter(account__acctid=obj_t.account.acctid)
+        year = FinancialYear.objects.get(is_active=True)
+        active = get_object_or_404(BudgetVariations, is_active=True,year =year.year)
+        line = get_object_or_404(BudgetLines, id=object_id, year=year.year)
+        obj_t = get_object_or_404(BudgetTotals, account__acctid=line.account.acctid, budget_set=active.budget_set,
+                                  year=year.year)
+        lines = BudgetLines.objects.filter(account__acctid=obj_t.account.acctid, year=year.year)
 
         if active:
 
@@ -3155,7 +4429,8 @@ def edit_line(request, object_id):
                     assumption_obj = get_object_or_404(BudgetAssumptions, factor=data['assumption'])
                     with transaction.atomic():  # Ensures that all operations are atomic
                         budget_line = BudgetLines.objects.get(
-                            pk=object_id)  # Assuming you have the ID of the BudgetLines instance to update
+                            pk=object_id,
+                            year=year.year, )  # Assuming you have the ID of the BudgetLines instance to update
                         budget_line.account = obj_t.account
                         budget_line.exchange_rate = data['exchange_rate']
                         budget_line.item_description = data['item_description']
@@ -3183,12 +4458,15 @@ def edit_line(request, object_id):
                         budget_line.last_updated = datetime.now()
                         budget_line.last_updated_by_id = request.user.id
                         budget_line.save()  # Call save() to trigger pre-save signal
+
+
                     return redirect('budgets:update', obj_t.id)
 
                 elif data['entryType'] == 'manual':
                     with transaction.atomic():  # Ensures that all operations are atomic
                         budget_line = BudgetLines.objects.get(
-                            pk=object_id)  # Assuming you have the ID of the BudgetLines instance to update
+                            pk=object_id,
+                            year=year.year)  # Assuming you have the ID of the BudgetLines instance to update
                         budget_line.account = obj_t.account
                         budget_line.exchange_rate = data['exchange_rate']
                         budget_line.department = obj_t.department
@@ -3198,6 +4476,7 @@ def edit_line(request, object_id):
                         budget_line.usage = Decimal(0)
                         budget_line.factor = Decimal(0)
                         budget_line.staff = Decimal(0)
+
                         budget_line.netperd1 = Decimal(data['netperd1'])
                         budget_line.netperd2 = Decimal(data['netperd2'])
                         budget_line.netperd3 = Decimal(data['netperd3'])
@@ -3215,6 +4494,7 @@ def edit_line(request, object_id):
                         budget_line.last_updated = datetime.now()
                         budget_line.last_updated_by_id = request.user.id
                         budget_line.save()  # Call save() to trigger pre-save signal
+
                     return redirect('budgets:update', obj_t.id)
             context = {
                 'currency': Currency.objects.all(),
@@ -3233,6 +4513,12 @@ def edit_line(request, object_id):
         return redirect('budgets:login')
 
 
+def change_year(request, year):
+    FinancialYear.objects.filter(year=year).update(is_active=True)
+    FinancialYear.objects.exclude(year=year).update(is_active=False)
+    return redirect("budgets:settings")
+
+
 def delete_assumption(request, id):
     BudgetAssumptions.objects.filter(id=id).delete()
     return redirect('budgets:assumptions')
@@ -3247,15 +4533,16 @@ def update_expenses(request, department_id):
     if request.user.is_authenticated:
         active = get_object_or_404(BudgetVariations, is_active=True)
         department = get_object_or_404(Department, id=department_id)
+        year = FinancialYear.objects.get(is_active=True)
         if active:
             if request.user.role != '002':
                 single_object = BudgetTotals.objects.filter(budget_set=active.budget_set,
-                                                            department=request.user.department)
+                                                            department=request.user.department, year=year.year)
             else:
-                single_object = BudgetTotals.objects.filter(budget_set=active.budget_set)
+                single_object = BudgetTotals.objects.filter(budget_set=active.budget_set, year=year.year)
 
             first_dept_obj = BudgetTotals.objects.filter(budget_set=active.budget_set,
-                                                         department_id=department_id).first()
+                                                         department_id=department_id, year=year.year).first()
             user = get_object_or_404(Users, id=request.user.id)
             obj = get_object_or_404(BudgetTotals, id=first_dept_obj.id)
             if request.user.role != '002':
@@ -3263,13 +4550,14 @@ def update_expenses(request, department_id):
             else:
                 assumptions = BudgetAssumptions.objects.all()
             next_obj = BudgetTotals.objects.filter(id__gt=obj.id, department_id=department_id,
-                                                   budget_set=active.budget_set).order_by('id').first()
+                                                   budget_set=active.budget_set, year=year.year).order_by('id').first()
             prev_obj = BudgetTotals.objects.filter(id__lt=obj.id, department_id=department_id,
-                                                   budget_set=active.budget_set).order_by('-id').first()
+                                                   budget_set=active.budget_set, year=year.year).order_by('-id').first()
 
             first_obj = BudgetTotals.objects.filter(department_id=department_id,
-                                                    budget_set=active.budget_set).first()
-            last_obj = BudgetTotals.objects.filter(department_id=department_id, budget_set=active.budget_set).last()
+                                                    budget_set=active.budget_set, year=year.year).first()
+            last_obj = BudgetTotals.objects.filter(department_id=department_id, budget_set=active.budget_set,
+                                                   year=year.year).last()
 
             form = BudgetEditForm()
             if request.method == 'POST':
@@ -3279,7 +4567,7 @@ def update_expenses(request, department_id):
                 with transaction.atomic():
                     BudgetTotals.objects.filter(id=obj.id).update(last_updated=datetime.now(),
                                                                   last_updated_by_id=request.user.id,
-
+                                                                  year=year.year,
                                                                   total=F('total') + data['total'],
                                                                   netperd1=F('netperd1') + data['netperd1'],
                                                                   netperd2=F('netperd2') + data['netperd2'],
@@ -3298,6 +4586,7 @@ def update_expenses(request, department_id):
 
                     BudgetLines.objects.create(
                         account=obj.account,
+                        year=year.year,
                         exchange_rate=data['exchange_rate'],
                         item_description=data['item_description'],
                         department=obj.department,
@@ -3327,6 +4616,7 @@ def update_expenses(request, department_id):
 
                     BudgetLines.objects.create(
                         account=obj.account,
+                        year=year.year,
                         exchange_rate=data['exchange_rate'],
                         department=obj.department,
                         total=Decimal(data['total']),
@@ -3388,9 +4678,28 @@ def saveComments(request):
     else:
         return JsonResponse({'error': 'Unsupported method'}, status=405)
 
+def currentDate():
+    # Get the current date
+    current_date = datetime.now()
+
+    # Format the date as YYYYMMDD
+    formatted_date = current_date.strftime('%Y%m%d')
+
+    # Convert to BigDecimal
+    bigdecimal_date = Decimal(formatted_date)
+
+    return bigdecimal_date
+
+def currentTime():
+    """
+    Returns the current time in milliseconds since the epoch (January 1, 1970).
+    """
+    return int(time.time() * 1000)
 
 def post_to_sage(request, budget_set):
-    objects = BudgetTotals.objects.filter(budget_set=budget_set).exclude(total=0)
+    year = FinancialYear.objects.get(is_active=True)
+    objects = BudgetTotals.objects.filter(budget_set=budget_set, year=year.year).exclude(total=0)
+    print(objects)
     bdgt_set = budget_set
     bs = '1'
     if bdgt_set == 'Budget 2':
@@ -3398,6 +4707,8 @@ def post_to_sage(request, budget_set):
     elif bdgt_set == 'Budget 3':
         bs = '3'
     for obj in objects:
+        net_netperds = [getattr(obj, f'netperd{i}') for i in range(1, 13)]
+
         # Determine if the object should be saved as positive or negative
         try:
             glafs_obj = Glafs.objects.using('sql_server').get(
@@ -3405,22 +4716,53 @@ def post_to_sage(request, budget_set):
                 fscsdsg='1',
                 fscscurn='ZMW',
                 curntype='F',
-                fscsyr=2024
+                fscsyr=year.year
             )
         except Glafs.DoesNotExist:
             # Handle the case where the Glafs object does not exist
-            continue
+            Glafs.objects.using('sql_server').create(
+                acctid=obj.account_id,
+                fscsyr=year.year,
+                fscsdsg='1',
+                fscscurn='ZMW',
+                curntype='F',
+                audtdate=currentDate(),
+                audttime=datetime.now().strftime('%H%M%S'),
+                audtuser="ADMIN",
+                audtorg="INFDAT",
+                swrvl=0,
+                codervl="",
+                scurndec="2",
+                openbal=0.0,
+                netperd1=net_netperds[0],
+                netperd2=net_netperds[1],
+                netperd3=net_netperds[2],
+                netperd4=net_netperds[3],
+                netperd5=net_netperds[4],
+                netperd6=net_netperds[5],
+                netperd7=net_netperds[6],
+                netperd8=net_netperds[7],
+                netperd9=net_netperds[8],
+                netperd10=net_netperds[9],
+                netperd11=net_netperds[10],
+                netperd12=net_netperds[11],
+                netperd13=0.0,
+                netperd14=0.0,
+                netperd15=0.0,
+                activitysw=1
 
+
+            )
             # Compare the netperds values
-        net_netperds = [getattr(obj, f'netperd{i}') for i in range(1, 13)]
-        glafs_netperds = [getattr(glafs_obj, f'netperd{i}') for i in range(1, 13)]
 
+        glafs_netperds = [getattr(glafs_obj, f'netperd{i}') for i in range(1, 13)]
         if net_netperds != glafs_netperds:
             # For other objects, save them as negative
             total = obj.total
-
-            sql_obj = Glafs.objects.using('sql_server').filter(acctid=obj.account_id,fscsdsg='1',fscscurn ='ZMW', curntype='F',
-                                                                  fscsyr=2024).update(
+            print(obj)
+            sql_obj = Glafs.objects.using('sql_server').filter(acctid=obj.account_id, fscsdsg='1', fscscurn='ZMW',
+                                                               curntype='F',
+                                                               fscsyr=year.year).update(
 
                 audtdate=datetime.now().date().strftime('%Y%m%d'),
                 audttime=datetime.now().strftime('%H%M%S'),
@@ -3437,10 +4779,34 @@ def post_to_sage(request, budget_set):
                 netperd11=net_netperds[10],
                 netperd12=net_netperds[11],
 
-
             )
 
-    return redirect('budgets:dashboard-home',)
+    return redirect('budgets:dashboard-home', )
+def post_to_sage_single(request, id):
+    year = FinancialYear.objects.get(is_active=True)
+    object = BudgetTotals.objects.get(id=id, year=year.year).exclude(total=0)
+    sql_obj = Glafs.objects.using('sql_server').filter(acctid=object.account_id, fscsdsg='1', fscscurn='ZMW',
+                                                       curntype='F',
+                                                       fscsyr=year.year).update(
+
+        audtdate=datetime.now().date().strftime('%Y%m%d'),
+        audttime=datetime.now().strftime('%H%M%S'),
+        netperd1=object.netperd1,
+        netperd2=object.netperd2,
+        netperd3=object.netperd3,
+        netperd4=object.netperd4,
+        netperd5=object.netperd5,
+        netperd6=object.netperd6,
+        netperd7=object.netperd7,
+        netperd8=object.netperd8,
+        netperd9=object.netperd9,
+        netperd10=object.netperd10,
+        netperd11=object.netperd11,
+        netperd12=object.netperd12,
+
+    )
+
+    return redirect('budgets:update',id )
 
 
 """

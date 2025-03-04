@@ -15,7 +15,8 @@
         </a>
 
     </header>
-    <div class="card-content parent-accordion-content is-hidden" data-department="{{ dept_name }}">
+    <div class="card-content parent-accordion-content {% if request.user.role == '002' %}is-hidden{% else %} {% endif %}" data-department="{{ dept_name }}">
+   
         {% if dept %}
             <div class="level " style="margin-top:1.5rem; font-weight:bold;">
                 <div class="level-left">
@@ -33,6 +34,7 @@
                         Incomplete {% else %} Complete{% endif %}</a>
                 </div>
             </div>
+           
             <div class="table-wrapper has-mobile-cards"
                  style="overflow:auto;max-height:400px;">
                 <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
@@ -166,6 +168,7 @@
                 {% include 'partials/department-paginator.html' with dept=dept dept_name=dept_name %}
             </div>
         {% endif %}
+        
     </div>
 </div>
 {% include 'partials/account-search-modal.html' with dept=dept dept_name=dept_name%}

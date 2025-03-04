@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+    <section class="section is-title-bar">
+        <div class="level">
+            <div class="level-left">
+                <div class="level-item">
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="hero is-hero-bar">
+        <div class="hero-body">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item"><h1 class="title">
+                        Change Log
+                    </h1></div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+   <section class="section is-main-section ">
+            {% include 'variationlog-department-card-content.html' with dept=finance dept_name='Finance' dept_id=12 %}
+            {% include 'variationlog-department-card-content.html' with dept=internal_audit dept_name='Internal Audit' dept_id=2%}
+            {% include 'variationlog-department-card-content.html' with dept=supply_chain dept_name='Supply Chain' dept_id=3 %}
+            {% include 'variationlog-department-card-content.html' with dept=bds dept_name='BDS' dept_id=4%}
+            {% include 'variationlog-department-card-content.html' with dept=public_relations dept_name='Public Relations' dept_id=5%}
+            {% include 'variationlog-department-card-content.html' with dept=technical dept_name='Technical' dept_id=6%}
+            {% include 'variationlog-department-card-content.html' with dept=information_systems dept_name='Information Systems' dept_id=7%}
+            {% include 'variationlog-department-card-content.html' with dept=legal_risk dept_name='Legal & Risk' dept_id=8%}
+            {% include 'variationlog-department-card-content.html' with dept=human_capital dept_name='Human Capital' dept_id=9%}
+            {% include 'variationlog-department-card-content.html' with dept=sales_marketing dept_name='Sales & Marketing' dept_id=10%}
+            {% include 'variationlog-department-card-content.html' with dept=admin dept_name='Administration' dept_id=11%}
+            {% include 'variationlog-department-card-content.html' with dept=ceo dept_name='CEO' dept_id=1%}
+            {% include 'variationlog-department-card-content.html' with dept=staff_remuneration dept_name='Staff & Remunerations' dept_id=14%}
+        </section>
+{% endblock %}
+{% block extra-scripts %}
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load  widget_tweaks %}
+{% block content %}
+    <div id="app">
+        <section class="section is-title-bar">
+
+        </section>
+        <section class="hero is-hero-bar">
+            <div class="hero-body">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item"><h1 class="title">
+                   Groups
+                        </h1></div>
+                    </div>
+                    <div class="level-right" style="display: none;">
+                        <div class="level-item"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="section is-main-section">
+             <h1>Accounts Grouped by Current Group</h1>
+
+    {% for group, accounts in grouped_accounts.items %}
+        <h3>{{ group }}</h3>
+        <ul>
+            {% for account in accounts %}
+                <li>{{ account.acctid }} - {{ account.acctdesc }}</li>
+            {% endfor %}
+        </ul>
+    {% empty %}
+        <p>No accounts found.</p>
+    {% endfor %}
+        </section>
+    </div>
+{% endblock %}

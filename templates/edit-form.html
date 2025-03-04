@@ -12,11 +12,16 @@
                 <div class="level">
                     <div class="level-left">
                         <div class="level-item">
-                            <a href="{% url 'budgets:update' object.id %}" ><h1 class="title">
-                            Update Budget
-                            </h1></a><i class="mdi mdi-chevron-right mdi-24px"></i><a href="{% url 'budgets:edit-line' obj.id %}" ><h1 class="title">
-                            Edit Line
-                        </h1></a>
+                            <nav class="breadcrumb  is-uppercase " aria-label="breadcrumbs">
+                                <ul >
+                                   <li><a href="{% if object.department.id == 13 %}{% url 'budgets:home' %}{% else %}{% url 'budgets:home-opex' %}{% endif %}"style="text-decoration: none">Update Budget</a></li>
+                                    <li><a href="{% if object.department.id == 13 %}{% url 'budgets:home' %}{% else %}{% url 'budgets:home-opex' %}{% endif %}" style="text-decoration: none">{{ department }}</a> </li>
+                                    <li><a href="{% url 'budgets:update' object.id %}" style="text-decoration: none"> {{ name }}</a></li>
+                                    <li><a href="{% url 'budgets:edit-line' obj.id %}" style="text-decoration: none"> Edit {{ name }} Line</a></li>
+                                </ul>
+                            
+                            </nav>
+                           
                         </div>
                     </div>
                     <div class="level-right" style="display: none;">

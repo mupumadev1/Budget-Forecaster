@@ -59,19 +59,20 @@
             </div>
         </section>
         <section class="section is-main-section ">
-            {% include 'department-card-content.html' with dept=finance dept_name='Finance' dept_id=12 %}
-            {% include 'department-card-content.html' with dept=internal_audit dept_name='Internal Audit' dept_id=2%}
-            {% include 'department-card-content.html' with dept=supply_chain dept_name='Supply Chain' dept_id=3 %}
-            {% include 'department-card-content.html' with dept=bds dept_name='BDS' dept_id=4%}
-            {% include 'department-card-content.html' with dept=public_relations dept_name='Public Relations' dept_id=5%}
-            {% include 'department-card-content.html' with dept=technical dept_name='Technical' dept_id=6%}
-            {% include 'department-card-content.html' with dept=information_systems dept_name='Information Systems' dept_id=7%}
-            {% include 'department-card-content.html' with dept=legal_risk dept_name='Legal & Risk' dept_id=8%}
-            {% include 'department-card-content.html' with dept=human_capital dept_name='Human Capital' dept_id=9%}
-            {% include 'department-card-content.html' with dept=sales_marketing dept_name='Sales & Marketing' dept_id=10%}
-            {% include 'department-card-content.html' with dept=admin dept_name='Administration' dept_id=11%}
-            {% include 'department-card-content.html' with dept=ceo dept_name='CEO' dept_id=1%}
-            {% include 'department-card-content.html' with dept=staff_remuneration dept_name='Staff & Remunerations' dept_id=14%}
+            {% include 'department-card-content.html' with dept=ceo dept_name='CEO' dept_id=1 group_ids=ceo_group_ids %}
+           {% include 'department-card-content.html' with dept=internal_audit dept_name='Internal Audit' dept_id=2 group_ids=internal_audit_group_ids %}
+           {% include 'department-card-content.html' with dept=supply_chain dept_name='Supply Chain' dept_id=3 group_ids=supply_chain_group_ids %}
+           {% include 'department-card-content.html' with dept=bds dept_name='Strategy' dept_id=4 group_ids=bds_group_ids %}
+           {% include 'department-card-content.html' with dept=public_relations dept_name='Public Relations' dept_id=5 group_ids=public_relations_group_ids %}
+           {% include 'department-card-content.html' with dept=technical dept_name='Technical' dept_id=6 group_ids=technical_group_ids %}
+           {% include 'department-card-content.html' with dept=information_systems dept_name='Information Systems' dept_id=7 group_ids=information_systems_group_ids %}
+           {% include 'department-card-content.html' with dept=legal_risk dept_name='Legal & Risk' dept_id=8 group_ids=legal_risk_group_ids %}
+           {% include 'department-card-content.html' with dept=human_capital dept_name='Human Capital' dept_id=9 group_ids=human_capital_group_ids %}
+           {% include 'department-card-content.html' with dept=sales_marketing dept_name='Sales & Marketing' dept_id=10 group_ids=sales_marketing_group_ids %}
+           {% include 'department-card-content.html' with dept=admin dept_name='Administration' dept_id=11 group_ids=admin_group_ids %}
+           {% include 'department-card-content.html' with dept=finance dept_name='Finance' dept_id=12 group_ids=finance_group_ids %}
+            {% include 'department-card-content.html' with dept=staff_remuneration dept_name='Staff & Remunerations' dept_id=14%} 
+            
         </section>
         {% include 'partials/post-modal.html' %}
 

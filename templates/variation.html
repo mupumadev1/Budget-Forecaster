@@ -1,0 +1,547 @@
+{% extends 'base.html' %}
+{% load filters %}
+{% load static %}
+{% load  widget_tweaks %}
+{% block content %}
+    <div id="app">
+        <section class="section is-title-bar">
+
+        </section>
+        <section class="hero is-hero-bar">
+            <div class="hero-body">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <nav class="breadcrumb  is-uppercase " aria-label="breadcrumbs">
+                                <ul >
+                                   <li><a href="{% if object.department.id == 13 %}{% url 'budgets:home' %}{% else %}{% url 'budgets:home-opex' %}{% endif %}"style="text-decoration: none">Update Budget</a></li>
+                                    <li><a href="{% if object.department.id == 13 %}{% url 'budgets:home' %}{% else %}{% url 'budgets:home-opex' %}{% endif %}" style="text-decoration: none">{{ department }}</a> </li>
+                                    <li><a href="{% url 'budgets:update' object.id %}" style="text-decoration: none"> {{ object.account.acctdesc }}</a></li>
+                                    <li><a href="{% url 'budgets:vary-budget' line.id %}" style="text-decoration: none"> Variation for {{ name }} Line</a></li>
+                                </ul>
+                            
+                            </nav>
+                           
+                        </div>
+                    </div>
+                    <div class="level-right" style="display: none;">
+                        <div class="level-item"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+            <section class="section is-main-section ">
+                <div class="card">
+
+                    <header class="card-header">
+                        <p class="card-header-title">
+                            <span class="icon"><i class="mdi mdi-ballot"></i></span>
+                           Vary {{object.account.acctdesc}} budget line
+                        </p>
+                        
+                           
+                                
+                                
+                        
+                    </header>
+                    <form method="POST" >
+                      
+                        {% csrf_token %}
+                        <div class="card-content">
+                            <hr style="margin:0.5rem">
+                            <div id="manual-div">
+                                <div class="field is-horizontal">
+                                    <div class="field-label is-normal">
+                                        <label class="label">From account</label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <p class="control is-expanded has-icons-left">
+                                             <input class="input" name="from_account" value="{{ line.account_id }}" disabled>
+
+                                                <span class="icon is-small is-left"><i
+                                                        class="mdi mdi-cash-multiple"></i></span>
+                                            </p>
+                                        </div>
+                                        <div class="field-label is-normal">
+                                            <label class="label">To account</label>
+                                        </div>
+                                        <div class="field">
+
+                                            <p class="control is-expanded has-icons-left has-icons-right">
+                                             <input name="to_account" class="input jb-modal" id="searchInput" data-target="variation-account-search-modal" placeholder="Type account name" >
+
+                                                <span class="icon is-small is-left"><i
+                                                        class="mdi mdi-cash-multiple"></i></span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field is-horizontal">
+                                    <div class="field-label is-normal">
+                                        <label class="label">From line</label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <p class="control is-expanded has-icons-left">
+                                             <input class="input" name="from_line" data-lineId="{{ line.id }}" value="{{ line.item_description }}" disabled>
+
+                                                <span class="icon is-small is-left"><i
+                                                        class="mdi mdi-cash-multiple"></i></span>
+                                            </p>
+                                        </div>
+                                        <div class="field-label is-normal">
+                                            <label class="label">To line</label>
+                                        </div>
+                                       <div class="field" style="width:22%">
+
+                                            <div class="select is-fullwidth" id = "to-line-div">
+                                            <select id="line-select" name="to_line">
+                                                <option ></option>
+
+                                            </select>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                                <div class="field is-horizontal">
+                                    <div class="field-label is-normal">
+                                        <label class="label">From period</label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field" style="width:23%">
+
+                                            <div class="select is-fullwidth">
+                                            <select name="from_period">
+                                                <option value="netperd1">January</option>
+                                                <option value="netperd2">February</option>
+                                                <option value="netperd3">March</option>
+                                                <option value="netperd4">April</option>
+                                                <option value="netperd5">May</option>
+                                                <option value="netperd6">June</option>
+                                                <option value="netperd7">July</option>
+                                                <option value="netperd8">August</option>
+                                                <option value="netperd9">September</option>
+                                                <option value="netperd10">October</option>
+                                                <option value="netperd11">November</option>
+                                                <option value="netperd12">December</option>
+                                            </select>
+                                        </div>
+
+
+
+                                        </div>
+                                        <div class="field-label is-normal">
+                                            <label class="label">To period</label>
+                                        </div>
+                                         <div class="field" style="width:23%">
+
+                                            <div class="select is-fullwidth">
+                                            <select name="to_period">
+                                                <option value="netperd1">January</option>
+                                                <option value="netperd2">February</option>
+                                                <option value="netperd3">March</option>
+                                                <option value="netperd4">April</option>
+                                                <option value="netperd5">May</option>
+                                                <option value="netperd6">June</option>
+                                                <option value="netperd7">July</option>
+                                                <option value="netperd8">August</option>
+                                                <option value="netperd9">September</option>
+                                                <option value="netperd10">October</option>
+                                                <option value="netperd11">November</option>
+                                                <option value="netperd12">December</option>
+                                            </select>
+                                        </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                                 <div class="field is-horizontal">
+                                    <div class="field-label is-normal">
+                                        <label class="label">Amount</label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <p class="control is-expanded has-icons-left">
+                                             <input class="input" id="from-amount" name="from_amount" placeholder="from amount">
+
+                                                <span class="icon is-small is-left"><i
+                                                        class="mdi mdi-cash-multiple"></i></span>
+                                            </p>
+                                        </div>
+                                        <div class="field-label is-normal">
+                                            <label class="label">Amount</label>
+                                        </div>
+                                        <div class="field">
+
+                                            <p class="control is-expanded has-icons-left has-icons-right">
+                                             <input class="input" id="to-amount" name="to_amount" disabled>
+
+                                                <span class="icon is-small is-left"><i
+                                                        class="mdi mdi-cash-multiple"></i></span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                 <div class="field is-horizontal">
+                                    <div class="field-label is-normal">
+                                        <label class="label">Comment</label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <p class="control is-expanded has-icons-left">
+                                             <input class="input" id="comment" name="comment" placeholder="...">
+
+                                                <span class="icon is-small is-left"><i
+                                                        class="mdi mdi-comment"></i></span>
+                                            </p>
+                                        </div>
+                                      
+                                    </div>
+                                </div>
+                            <hr style="margin: 0.5rem">
+                        </div>
+                            <div class="field level">
+                                <div class="field-label level-left">
+                                    <!-- Left empty for spacing -->
+                                </div>
+                                <div class="field-body level-right">
+                                    <div class="field">
+                                        <div class="field is-grouped">
+                                            <div class="control">
+                                                <button type="button" id="varySubmitButton" class="button is-info" data-objectIdentification={{ object.id }} >
+                                                    <span>Update</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                
+</div>
+            </section>
+        
+
+      
+    </div>
+<div id="variation-account-search-modal" class="modal">
+    <div class="modal-background jb-modal-close"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Search Accounts</p>
+            <button class="delete jb-modal-close" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label">Find By:</label>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <div class="select is-fullwidth">
+                            <select id="variation-search-criteria">
+                                <option disabled selected style="display: none"></option>
+                                <option id="name" value="account_name"> Account Name</option>
+                                <option id="acc-id" value="account_id"> Account ID</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label">Filter :</label>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <div class="control">
+                            <input
+                                                 data-dept="{{ dept_id }}" class="input"
+                                                 id="variation-account-input-search" type="text" disabled>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% if dept %}
+            <div class="table-wrapper has-mobile-cards"
+                 style="overflow:auto;max-height:400px;">
+                <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                       role="grid">
+                    <thead>
+                    <tr>
+                        <th>Account ID</th>
+                        <th>Account Name</th>
+
+                        <th></th>
+
+                    </tr>
+                    </thead>
+                    <tbody class="budget-table-body" id="variation-table-body" role="rowgroup">
+
+                            <tr role="row" data-total="{{ acc.total }}">
+                                <td data-label="Account id"></td>
+                                <td data-label="Account name"
+                                    style="width: 10%;"></td>
+
+                                <td class="is-actions-cell">
+
+                                </td>
+                            </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            {% else %}
+                <div class="table-container" style="height: 150px; overflow-y: scroll;">
+                    <table class="table is-bordered is-fullwidth  is-narrow " id="search-modal-table">
+                        <thead class="is-static">
+                        <th>Account ID</th>
+                        <th>Account Name</th>
+                        </thead>
+                        <tbody id="variation-table-body">
+
+
+                        <tr>
+                            <td><a class="has-text-black has-text-centered"></a></td>
+                            <td><a class="has-text-black has-text-centered"></a></td>
+                        </tr>
+
+
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button jb-modal-close">Cancel</button>
+        </footer>
+    </div>
+    <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
+</div>
+
+{% load filters %}
+
+{% endblock %}
+
+
+{% block extra-scripts %}
+    <script>
+    document.getElementById('varySubmitButton').addEventListener('click', function () {
+    // Create a FormData object to gather form data
+    const form = document.querySelector('form');
+    const formData = new FormData(form);
+
+    // Include all disabled fields (input, select, textarea) by manually appending them
+   function isNumeric(value) {
+    return !isNaN(parseFloat(value)) && isFinite(value);
+}
+    const disabledElements = form.querySelectorAll('input:disabled, select:disabled, textarea:disabled');
+    disabledElements.forEach(function (element) {
+        if (element.name === "from_line"){
+            formData.append(element.name,element.dataset.lineid.replace(",", ""))
+        }
+        
+        else{
+        formData.append(element.name, element.value);
+        }
+    });
+ const jsonData = {};
+    // Convert FormData to JSON for easier processing on the server side
+   
+    let isEmpty = false; // Flag to check for empty fields
+
+    formData.forEach((value, key) => {
+        if (value.trim() === "") {
+            isEmpty = true; // Set flag if an empty value is found
+            document.querySelector(`[name="${key}"]`).classList.add('is-danger'); // Add a CSS class for error indication
+        } else {
+            document.querySelector(`[name="${key}"]`).classList.remove('is-danger'); // Remove error class if no error
+        }
+        jsonData[key] = value;
+        
+    });
+
+    // Check if any field is empty
+    if (isEmpty) {
+        alert('Please fill out all fields before submitting the form.'); // Display error message
+        return; // Prevent form submission if there are empty fields
+    }
+    $.ajax({
+    url: '/vary-line/', // Django view URL
+    type: 'POST', // HTTP method
+    headers: {
+        'X-CSRFToken': '{{ csrf_token }}' // Include CSRF token
+    },
+    contentType: 'application/json', // Content type
+    data: JSON.stringify(jsonData), // Convert JSON data to a string
+    success: function (response) {
+        alert('Variation Successful');    
+        window.location.reload(); // Reload the page
+        // Or update the UI dynamically instead of reloading
+    },
+    error: function (xhr, status, error) {
+        console.error('Error:', status, error);
+        // Handle errors, such as displaying a message to the user
+    }
+});
+        })
+
+
+    function isValidDecimal(value) {
+    // Check if the value is a number and has at most 2 decimal places
+    return /^-?\d+(\.\d{0,2})?$/.test(value);
+}
+    const from = document.getElementById('from-amount')
+    const to = document.getElementById('to-amount')
+    from.addEventListener('input',()=>{
+       let value = from.value;
+        console.log(value)
+    // Validate if it's a valid decimal number (optional)
+    if (isValidDecimal(value)) {
+        // Format the value to 2 decimal places
+        to.value = parseFloat(value).toFixed(2);
+    }
+    })
+   const input = document.getElementById("variation-account-input-search");
+const lineSelect = document.getElementById('line-select');
+
+function addEventListeners() {
+    const accts = document.querySelectorAll(".account-table");
+
+    accts.forEach(a => {
+        // Ensure no duplicate listeners are added
+        a.removeEventListener('click', handleAccountClick);
+        a.addEventListener('click', handleAccountClick);
+    });
+}
+const inputSearchElem = document.getElementById('searchInput')
+function handleAccountClick(event) {
+    const accountElement = event.currentTarget;  // Get the clicked element
+    const ac = accountElement.dataset.account;  // Get the account from data attribute
+
+    inputSearchElem.value =ac;
+    inputSearchElem.disabled=true;
+    // Send fetch request based on the clicked account
+    fetch(`/account/line/search?acc=${ac}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response error');
+            }
+            return response.json();
+        })
+        .then(result => {
+    const data = result.data;
+    lineSelect.innerHTML = "";  // Clear the previous options
+
+    if (Object.keys(data).length > 0) { // Check if the data object is not empty
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;  // Use item ID as option value
+            option.textContent = item.item_description;  // Use item description as option text
+            lineSelect.appendChild(option);
+        });
+       
+    } else {
+        const inputElement = document.createElement('input');
+        
+        // Copy attributes from lineSelect to inputElement
+       inputElement.classList.add('input','mdi', 'mdi-cash-multiple');
+        inputElement.type = 'text';
+        inputElement.name = 'to_line';
+        inputElement.placeholder='New budget line...';
+        
+        // Replace the select element with the input element
+        lineSelect.replaceWith(inputElement);
+        
+        // Get the div element where the new p element will go
+        const selectDiv = document.getElementById('to-line-div');
+        
+        // Create the p element and add classes
+        const pElement = document.createElement('p');
+        pElement.classList.add('control', 'is-expanded', 'has-icons-left');
+        
+        // Append the input element to the p element
+        pElement.appendChild(inputElement);
+        
+        // Replace the selectDiv with the newly created p element containing the input
+        selectDiv.replaceWith(pElement);
+                // Update jsonData for type 2
+    }
+
+               
+            
+
+            // Close the modal after processing the click
+            accountElement.closest('.modal').classList.remove('is-active');
+            document.documentElement.classList.remove('is-clipped');
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+        });
+}
+                const fieldBody = document.getElementById('variation-account-search-modal');
+                const criteriaSelect = fieldBody.querySelector('#variation-search-criteria');
+                const currentTableBody = fieldBody.querySelector('#variation-table-body');
+                criteriaSelect.addEventListener('change', (ev) => {
+                    input.removeAttribute('disabled');
+                    selectedFilter = ev.target.value;
+                });
+                input.addEventListener('input', (ev) => {
+                    const val = ev.target.value.trim();
+                    let deptartment = input.dataset.dept;
+
+                    if (val === "") {
+                        currentTableBody.innerHTML = "";
+                        return;
+                    }
+                    // Fetch data based on search criteria
+                    fetch(`/account/search?filter=${selectedFilter}&value=${val}&department=${deptartment}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            const data = result.data;
+                            console.log(data)
+                            currentTableBody.innerHTML = "";
+                            data.forEach(acc => {
+                                const row = document.createElement('tr');
+                                row.setAttribute('role', 'row');
+                                row.setAttribute('data-total', acc.total);
+
+                                const accountIdCell = document.createElement('td');
+                                accountIdCell.setAttribute('data-label', 'Account id');
+                                accountIdCell.textContent = acc.account_id;
+                                accountIdCell.dataset.account = acc.account_id;
+                                accountIdCell.classList = "account-table";
+                                row.appendChild(accountIdCell);
+
+                                const accountNameCell = document.createElement('td');
+                                accountNameCell.setAttribute('data-label', 'Account name');
+                                accountNameCell.textContent = acc.account__acctdesc;
+                                accountNameCell.dataset.account = acc.account_id;
+                                accountNameCell.classList = "account-table";
+                                row.appendChild(accountNameCell);
+
+
+
+                                currentTableBody.appendChild(row);
+                                addEventListeners();
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                });// Add the handleClick function as the event listener
+
+
+
+
+    </script>
+{% endblock %}

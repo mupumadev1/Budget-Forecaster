@@ -1,0 +1,17 @@
+<div id="toggle-logging-modal" class="modal">
+    <div class="modal-background jb-modal-close"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Confirm action</p>
+            <button class="delete jb-modal-close" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <p class="has-text-centered">Toggle logging of budget changes from {{ toggle }}</p>
+        </section>
+        <footer class="modal-card-foot">
+            <a class="button jb-modal-close" >Cancel</a>
+            <a href="{% url 'budgets:toggle-log' %}" class="button is-info">Save</a>
+        </footer>
+    </div>
+    <button class="modal-close is-large jb-modal-close" aria-label="close"></button>
+</div>

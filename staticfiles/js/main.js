@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
+
     let selectedFilter = "";
     const assumptionSelect = document.getElementById('assumptions-select');
     const mobileToggleElements = document.querySelectorAll('.jb-aside-mobile-toggle');
@@ -24,19 +25,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const checkbox = document.getElementById('non-zero')
     const deptList = document.querySelectorAll('a.dropdown-item.dept-list')
     const parentAccordion = document.querySelectorAll(".card-header-icon.accordion-button")
-    const childAccordion = document.querySelectorAll(".accordion-button")
+    const childAccordion = document.querySelectorAll(".child-accordion-button")
     const notficDismiss = document.querySelectorAll(".jb-notification-dismiss")
     const chngeNotification = document.getElementById("change-notification")
     const monthsDiv = document.getElementById('months-div')
     const submitBtn = document.getElementById('submitButton')
     const formDiv = document.getElementById('add-line')
-    const button2Element = document.getElementById("changeButton");
-    const buttonElement = document.getElementById("settingsSubmitButton");
+    const button2Element = document.querySelector("[id='changeButton']");
+    const buttonElement = document.querySelector("[id='settingsSubmitButton']");
     const rate = document.getElementById('rate')
     const factor = document.getElementById('factor')
     let quarter = []
     let mths = []
-
     if (buttonElement) {
         buttonElement.addEventListener("click", function (ev) {
             ev.preventDefault()
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         var updatedObjId = objId.replace(/\d+/, newNumber);
 
                         // Update the window location with the new objId
-                        window.location.href = "/home/" + updatedObjId;
+                        window.location.reload();
                     }
                 })
 
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     return response.json();
                 })
                 .then(result => {
-                    window.location.href = "/home/" + objId
+                    window.location.reload()
                 })
 
         });
@@ -138,32 +138,63 @@ document.addEventListener("DOMContentLoaded", function () {
             dept.addEventListener('click', (ev) => {
                 ev.preventDefault();
                 var dept_id = dept.getAttribute('data-deptid');
-                console.log(dept_id);
                 window.location.href = '/update/expenses/' + dept_id;
             });
         })
     }
-    if (parentAccordion.length > 0) {
+     if (parentAccordion.length > 0) {
+        parentAccordion.forEach(function(button) {
+            button.addEventListener("click", function () {
+                const parentHeader = this.closest("header");
+                const parentAccordionContent = parentHeader.nextElementSibling;
 
-        parentAccordion.forEach(function (parentButton) {
-            parentButton.addEventListener("click", function () {
-                var parentAccordionContent = this.closest(".card").querySelector(".parent-accordion-content");
-                parentAccordionContent.classList.toggle('is-hidden')
+                if (parentAccordionContent.classList.contains("parent-accordion-content")) {
+                    // Toggle visibility of the accordion content
+                    parentAccordionContent.classList.toggle("is-hidden");
+
+                    // Update the icon
+                    const icon = this.querySelector("i");
+                    if (parentAccordionContent.classList.contains("is-hidden")) {
+                        icon.classList.remove("mdi-minus-thick");
+                        icon.classList.add("mdi-plus-thick");
+                    } else {
+                        icon.classList.remove("mdi-plus-thick");
+                        icon.classList.add("mdi-minus-thick");
+                    }
+
+                    let deptId = parentAccordionContent.dataset.department;
+                    console.log(deptId);
+                    addEventListenerToAnchorTag(deptId); // Ensure this function is defined elsewhere
+                }
+                const subAccordionButtons = parentAccordionContent.querySelectorAll('.sub-group-container .accordion-button');
+                if (subAccordionButtons) {
+                    subAccordionButtons.forEach(function (subButton) {
+                        subButton.addEventListener("click", function () {
+                            const subHeader = this.closest("header");
+                            const subAccordionContent = subHeader.nextElementSibling;
+
+                            if (subAccordionContent.classList.contains("sub-accordion-content")) {
+                                // Toggle visibility of the sub-group accordion content
+                                subAccordionContent.classList.toggle("is-hidden");
+
+                                // Update the icon for the sub-group
+                                const subIcon = this.querySelector("i");
+                                if (subAccordionContent.classList.contains("is-hidden")) {
+                                    subIcon.classList.remove("mdi-minus-thick");
+                                    subIcon.classList.add("mdi-plus-thick");
+                                } else {
+                                    subIcon.classList.remove("mdi-plus-thick");
+                                    subIcon.classList.add("mdi-minus-thick");
+                                }
+                            }
+                        });
+                    });
+                }
             })
         })
-    }
-    if (childAccordion.length > 0) {
-
-        childAccordion.forEach(function (button) {
-            button.addEventListener("click", function () {
-                var content = this.closest(".accordion").querySelector(".accordion-content");
-
-                content.classList.toggle('is-hidden')
-
-            });
-        });
 
     }
+
 
 
     if (localStorage.getItem("showUploadNotification")) {
@@ -203,8 +234,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-
-// setup chat scoket
+ function getCSRFToken() {
+        let csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken')).split('=')[1];
+        if (csrfToken == null) {
+            csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+        }
+        return csrfToken;
+    }
+//setup chat scoket
     const notifyScoket = new WebSocket(
         'ws://'
         + window.location.host
@@ -228,56 +265,94 @@ document.addEventListener("DOMContentLoaded", function () {
     notifyScoket.onmessage = function (e) {
         const data = JSON.parse(e.data);
         const message = data.message;
-        // Call the setMessage function to add the new li element
-        console.log(message)
         setMessage(message);
-        markAsRead();
+
 
     };
-
-    function getCSRFToken() {
-        let csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken')).split('=')[1];
-        if (csrfToken == null) {
-            csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-        }
-        return csrfToken;
-    }
-
     function setMessage(message) {
-        // Create a new li element
-        var newLi = document.createElement('li');
+  // Generate a unique notification ID
+  const notificationId = generateNotificationId();
 
-        // Create a new anchor element
-        var newAnchor = document.createElement('a');
-        newAnchor.className = 'navbar-item is-clipped is-size-7'
-        newAnchor.textContent = message;
-        newAnchor.style.wordBreak = 'break-word'
-        newAnchor.id = 'notification-anchor'
+  // Create a new notification object with the message and ID
+  const notification = {
+    id: notificationId,
+    message: message
+  };
+
+  // Save the notification object in local storage
+  const notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+  notifications.push(notification);
+  localStorage.setItem('notifications', JSON.stringify(notifications));
+
+  // Create the new notification element
+  const newAnchor = document.createElement('a');
+  newAnchor.className = 'navbar-item is-clipped is-size-7';
+  newAnchor.textContent = message;
+  newAnchor.style.wordBreak = 'break-word';
+  newAnchor.id = notificationId;
+
+  // Append the new notification element to the notification container
+  const divElement = document.getElementById('notify');
+  divElement.appendChild(newAnchor);
+    markAsRead(notification.id)
+  // Update the notification count
+  const count = document.getElementById('bellCount').getAttribute('data-count');
+  document.getElementById('bellCount').setAttribute('data-count', parseInt(count) + 1);
+}
+
+function generateNotificationId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
 
-        // Append the anchor element to the li element
-        newLi.appendChild(newAnchor);
-        newLi.style.display = 'block';
-        // Get the ul element with the id "notify"
-        var ulElement = document.getElementById('notify');
+function markAsRead(notificationId) {
+  var anchorElement = document.getElementById(notificationId);
+if (anchorElement) {
+    anchorElement.addEventListener('click', () => {
+        // Remove the notification from local storage
+        const notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+        const updatedNotifications = notifications.filter(notification => notification.id !== notificationId);
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
 
-        // Append the new li element to the ul element
-        ulElement.appendChild(newLi);
+        // Hide the notification element
+        anchorElement.classList.add('is-hidden');
+        const count = document.getElementById('bellCount').getAttribute('data-count');
+        document.getElementById('bellCount').setAttribute('data-count', parseInt(count) - 1);
 
-        // getting object of count
-        var count = document.getElementById('bellCount').getAttribute('data-count');
-        document.getElementById('bellCount').setAttribute('data-count', parseInt(count) + 1);
+        // Redirect to the desired page (e.g., "/settings")
+        //window.location.href = "/settings";
+    });
+}
+}
+
+function loadNotifications() {
+  const notifications = JSON.parse(localStorage.getItem('notifications')) || [];
+
+  notifications.forEach(notification => {
+    const newAnchor = document.createElement('a');
+    newAnchor.className = 'navbar-item is-clipped is-size-7';
+    newAnchor.textContent = notification.message;
+    newAnchor.style.wordBreak = 'break-word';
+    newAnchor.id = notification.id;
+
+    const divElement = document.getElementById('notify');
+    if (divElement){
+        divElement.appendChild(newAnchor);
+
     }
+    const bell = document.getElementById('bellCount')
+      if (bell){
+        const count = bell.getAttribute('data-count');
+        bell.setAttribute('data-count', parseInt(count) + 1);
+      }
 
-    function markAsRead() {
-        var anchorElement = document.getElementById('notification-anchor');
-
-        anchorElement.addEventListener('click', () => {
-            anchorElement.classList.add('is-hidden')
-            window.location.href = "/settings"
-        })
-    }
-
+    // Add event listener to mark notification as read
+    newAnchor.addEventListener('click', () => {
+      markAsRead(notification.id);
+    });
+  });
+}
+loadNotifications()
 
     if (asideToggle) {
         asideToggle.addEventListener('click', function () {
@@ -310,7 +385,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.querySelectorAll('.menu-list li').forEach(el => {
         el.addEventListener('click', e => {
-            console.log(e.target.className)
             e.currentTarget.classList.toggle('is-active');
             const dropdownIcon = e.currentTarget.querySelector('.dropdown-icon .icon i');
             dropdownIcon.classList.toggle('mdi-plus');
@@ -358,9 +432,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 tableBody.innerHTML = "";
                 return;
             }
-
             // Fetch data based on search criteria
-            fetch(`account/search?filter=${selectedFilter}&value=${val}`)
+            fetch(`/account/search?filter=${selectedFilter}&value=${val}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -399,28 +472,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
         });
     }
-    /*document.getElementById('save').addEventListener('click', ev => {
-        ev.preventDefault()
-        const formData = {};
-        $(".input").each((index, el) => {
-            formData[$(el).attr('name')] = $(el).val();
-        })
-        $.ajax({
-            url: ``,
-            type: 'POST',
-            dataType: 'JSON',
-            data: JSON.stringify(formData),
-            headers: {'X-CSRFToken': getCSRFToken()}, // Include CSRF token
-            success: function (resp) {
-                window.location.href = ``
-            },
-            error: function (resp) {
-                console.log(resp);
 
-                alert('An error occurred while submitting.');
-            }
-        });
-    })*/
 // Check for the existence of other elements and add event listeners accordingly
 // Add event listeners to checkboxes
     if (checkbElements.length > 0) {
@@ -450,7 +502,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         mths.push(checkbox.value);
                     });
 
-                    console.log(mths);
                 });
             });
         } else if (quarterCB.checked) {
@@ -465,7 +516,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     checkedBoxes.forEach(function (checkbox) {
                         quarter.push(checkbox.value);
                     });
-                    console.log(quarter);
                 });
             });
 
@@ -478,6 +528,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // Add event listener to entryType select element
     if (entryType) {
         entryType.addEventListener('change', () => {
+            const currentUrl = window.location.href;
             submitBtn.disabled = false
             document.getElementById('add-line').classList.remove('is-hidden')
             if (entryType.value === 'formula') {
@@ -485,17 +536,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 document.getElementById('form-settings-modal').classList.add('is-active');
                 manualDiv.classList.add('is-hidden')
                 formulaDiv.classList.remove('is-hidden');
+                if (currentUrl.includes('update')) {
                 $(".manual-input").each(function (index, el) {
                     $(el).val('0');
                 });
+                }
             } else if (entryType.value === 'manual') {
                 formulaDiv.classList.add('is-hidden');
                 manualDiv.classList.remove('is-hidden')
                 document.getElementById('form-settings-modal').classList.remove('is-active');
                 assumptionSelect.disabled = true;
+                if (currentUrl.includes('update')) {
                 $(".formula-input").each(function (index, el) {
                     $(el).val('0');
                 });
+                }
             } else {
                 submitBtn.disabled = true
             }
@@ -503,16 +558,30 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     if (assumptionSelect) {
         assumptionSelect.addEventListener('change', () => {
-
-            rate.value = assumptionSelect.selectedOptions[0].getAttribute('data-value');
-            rate.readOnly = true
-
+           const selectedIndex = assumptionSelect.selectedIndex;
+            if (selectedIndex !== -1) {
+                const selectedOption = assumptionSelect.options[selectedIndex];
+                const selectedRate = selectedOption.getAttribute('data-value');
+                console.log(selectedRate)
+                if (selectedRate) {
+                    rate.value = selectedRate;
+                    rate.readOnly = true;
+                } else {
+                    // Handle the case where data-rate is not set
+                    console.error('data-rate attribute is not set for the selected option.');
+                }
+        }
         })
     }
 // Add event listeners to buttons with class 'is-info'
     if (submitBtn) {
+         let objctId = null;
         submitBtn.addEventListener('click', function (e) {
             e.preventDefault(); // Prevent default form submission
+            if (!window.location.href.includes('update')) {
+               let rawObj = submitBtn.dataset.objectidentification.replace(',','')
+                objctId = parseInt(rawObj)
+            }
 
             let isValid = true;
             $('.manual-input, .formula-input').each(function () {
@@ -533,10 +602,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         formData[$(el).attr('name')] = parseFloat($(el).val()) || 0;
 
                     })
+                    const assumption = (document.getElementById('assumptions-select')?.selectedOptions[0]?.textContent) || 'None';
+
                     const rate = selectedCurrencyOption.dataset.rate;
                     let total
                     const nonZeroVariables = [formData['rate'], formData['usage'], formData['factor'], formData['staff']].filter(value => value !== 0);
-                    console.log(formData)
                     if (nonZeroVariables.length > 0) {
                         total = nonZeroVariables.reduce((accumulator, currentValue) => accumulator * currentValue);
                         total = total * rate
@@ -546,7 +616,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (evenlyCB.checked) {
                         let dividend = total / 12
                         for (let i = 1; i <= 12; i++) {
-                            formData['period' + i] = dividend
+                            formData['netperd' + i] = dividend
                         }
                     } else if (monthsCB.checked) {
                         let dividend = total / mths.length;
@@ -558,18 +628,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         // Set values for months in mths array
                         for (let i = 0; i < mths.length; i++) {
-                            formData['period' + monthToNumber[mths[i].toLowerCase()]] = dividend;
+                            formData['netperd' + monthToNumber[mths[i].toLowerCase()]] = dividend;
                         }
 
                         // Set values to 0 for months not in mths array
                         const allMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
                         allMonths.forEach(month => {
                             if (!mths.includes(month)) {
-                                formData['period' + monthToNumber[month]] = 0;
+                                formData['netperd' + monthToNumber[month]] = 0;
                             }
                         });
 
-                        console.log(formData);
                     } else if (quarterCB.checked) {
                         let dividend = total / quarter.length;
 
@@ -579,31 +648,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         // Set values for months in mths array
                         for (let i = 0; i < quarter.length; i++) {
-                            formData['period' + quarterToNumber[quarter[i]]] = dividend;
+                            formData['netperd' + quarterToNumber[quarter[i]]] = dividend;
                         }
 
                         // Corrected loop to set values for all months
                         for (let i = 1; i <= 12; i++) {
-                            if (!formData.hasOwnProperty('period' + i)) {
-                                formData['period' + i] = 0;
+                            if (!formData.hasOwnProperty('netperd' + i)) {
+                                formData['netperd' + i] = 0;
                             }
                         }
                     }
-                    console.log(formData)
                     formData['exchange_rate'] = rate
                     formData['entryType'] = 'function'
+                    formData['assumption'] = assumption
+                    console.log(formData)
                     $.ajax({
                         url: ``,
                         type: 'POST',
                         data: JSON.stringify(formData),
                         headers: {'X-CSRFToken': getCSRFToken()}, // Include CSRF token
                         success: function (resp) {
-                            window.location.href = ``
+                            if (window.location.href.includes('update')) {
+                                window.location.href = ``
+                            } else {
+                                window.location.href = `/update/${objctId}`
+                            }
                         },
-                        error: function (resp) {
-                            console.log(resp);
-
-                            alert('An error occurred while submitting.');
+                        error: function (xhr, status, error) {
+                            console.log("Error status: " + status);
+                            console.log("Error message: " + error);
+                            console.log(xhr.responseText); // Log the full response for detailed error information
+                            // Handle the error or display a specific message to the user
                         }
                     });
                 } else if (selectedOption === 'manual') {
@@ -619,8 +694,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     formData['entryType'] = 'manual'
                     let total = 0
                     for (let i = 1; i <= 12; i++) {
-                        if (formData['period' + i] !== '') {
-                            total += parseFloat(formData['period' + i])
+                        if (formData['netperd' + i] !== '') {
+                            total += parseFloat(formData['netperd' + i])
                         }
                     }
                     formData['total'] = total
@@ -632,7 +707,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         data: JSON.stringify(formData),
                         headers: {'X-CSRFToken': getCSRFToken()}, // Include CSRF token
                         success: function (resp) {
-                            window.location.href = ``
+
+                            if (window.location.href.includes('update')) {
+                                window.location.href = ``
+                            } else {
+                                window.location.href = `/update/${objctId}`
+                            }
                         },
                         error: function (xhr, status, error) {
                             console.log("Error status: " + status);
@@ -648,14 +728,32 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 // Add event listener to toggleDropdown element
-    if (toggleDropdownElement) {
-        toggleDropdownElement.addEventListener("click", () => {
-            var dropdown = document.getElementById('myDropdown');
-            if (dropdown) {
-                dropdown.classList.toggle('is-active');
+    document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+    const trigger = dropdown.querySelector('.dropdown-trigger button');
+
+    trigger.addEventListener('click', function(event) {
+        // Close other active dropdowns
+        document.querySelectorAll('.dropdown.is-active').forEach(function(otherDropdown) {
+            if (otherDropdown !== dropdown) {
+                otherDropdown.classList.remove('is-active');
             }
         });
-    }
+
+        // Toggle the 'is-active' class on the clicked dropdown
+        dropdown.classList.toggle('is-active');
+    });
+});
+
+// Close the dropdown if clicking outside of it
+document.addEventListener('click', function(event) {
+    const target = event.target;
+    document.querySelectorAll('.dropdown.is-active').forEach(function(dropdown) {
+        if (!dropdown.contains(target)) {
+            dropdown.classList.remove('is-active');
+        }
+    });
+});
+
 
     const handleError = (input) => {
         let inputValue = input.val().trim();
@@ -738,7 +836,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         $(this).text($(this).find("input").val());
                     }
                 });
-                console.log(newData)
                 // Assuming you have a function to send data to backend
                 sendDataToBackend(newData, function () {
                     $(this).data("action", "edit").find("i").removeClass("mdi-plus").addClass("mdi-file-edit");
@@ -759,7 +856,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         $(this).text($(this).find("input").val());
                     }
                 });
-                console.log(newData)
                 // Assuming you have a function to send data to backend
                 sendDataToBackend(newData, function () {
                     $(this).data("action", "edit").find("i").removeClass("mdi-plus").addClass("mdi-file-edit");
@@ -772,7 +868,6 @@ document.addEventListener("DOMContentLoaded", function () {
     function sendDataToBackend(data, callback) {
         // Perform AJAX request to send data to the backend
         var processedData = preprocessData(data);
-        console.log(processedData)
         $.ajax({
             url: "/update/assumptions/",
             method: "POST",
@@ -823,10 +918,10 @@ document.addEventListener("DOMContentLoaded", function () {
             '</tr>';
 
         // Append the new row to the table
-        $("#assumptions").append(newRowHtml);
+        $("#currency_assumptions").append(newRowHtml);
 
         // Delegate click event for editBtn and deleteBtn within assumptions table
-        $("#assumptions").on("click", ".editBtn", function () {
+        $("#currency_assumptions").on("click", ".editBtn", function () {
             // Your edit button logic here
         });
 
@@ -840,10 +935,148 @@ document.addEventListener("DOMContentLoaded", function () {
     $("#addCurrencyRowBtn").click(function () {
         addCurrencyRow();
     });
-    document.getElementById('expenseBtn').addEventListener('click', ev => {
-        ev.preventDefault()
-        document.getElementById('expenses').classList.toggle('is-hidden')
-    })
+    const expensesBtn = document.getElementById('expenseBtn')
+    if (expensesBtn) {
 
+        expensesBtn.addEventListener('click', ev => {
+            ev.preventDefault()
+            document.getElementById('expenses').classList.toggle('is-hidden')
+        })
+    }
 
-})
+    function handleClick(deptId) {
+        return function (event) {
+            event.preventDefault();
+            const url = event.target.getAttribute('href');
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    updateTableAndPaginator(html, deptId);
+                    addEventListenerToAnchorTag(deptId);
+                });
+        };
+    }
+
+    function addEventListenerToInputSearch(deptId) {
+        console.log(deptId)
+        const inputs = document.querySelectorAll(`[class*="input account-input-search-${deptId}"]`)
+        console.log(inputs)
+        if (inputs.length > 0) {
+            inputs.forEach(input => {
+                const fieldBody = input.closest('.modal');
+                const criteriaSelect = fieldBody.querySelector('#search-criteria');
+                const currentTableBody = fieldBody.querySelector('#table-body');
+                criteriaSelect.addEventListener('change', (ev) => {
+                    input.removeAttribute('disabled');
+                    selectedFilter = ev.target.value;
+                });
+                input.addEventListener('input', (ev) => {
+                    const val = ev.target.value.trim();
+                    let deptartment = input.dataset.dept;
+
+                    if (val === "") {
+                        currentTableBody.innerHTML = "";
+                        return;
+                    }
+                    // Fetch data based on search criteria
+                    fetch(`/account/search?filter=${selectedFilter}&value=${val}&department=${deptartment}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            const data = result.data;
+                            console.log(data)
+                            currentTableBody.innerHTML = "";
+                            data.forEach(acc => {
+                                const row = document.createElement('tr');
+                                row.setAttribute('role', 'row');
+                                row.setAttribute('data-total', acc.total);
+
+                                const accountIdCell = document.createElement('td');
+                                accountIdCell.setAttribute('data-label', 'Account id');
+                                accountIdCell.textContent = acc.account_id;
+                                row.appendChild(accountIdCell);
+
+                                const accountNameCell = document.createElement('td');
+                                accountNameCell.setAttribute('data-label', 'Account name');
+                                accountNameCell.textContent = acc.account__acctdesc;
+                                row.appendChild(accountNameCell);
+
+                                const actionsCell = document.createElement('td');
+                                actionsCell.className = 'is-actions-cell';
+                                const buttonsDiv = document.createElement('div');
+                                buttonsDiv.className = 'buttons is-right';
+
+                                const editButton = document.createElement('a');
+                                editButton.className = 'button is-small is-light';
+                                editButton.type = 'button';
+                                editButton.href = acc.id ? `/update/${acc.id}` : '';
+                                const editIcon = document.createElement('span');
+                                editIcon.className = 'icon';
+                                editIcon.innerHTML = '<i class="mdi mdi-file-edit"></i>';
+                                editButton.appendChild(editIcon);
+
+                                const deleteButton = document.createElement('a');
+                                deleteButton.className = 'button is-small is-danger-passive';
+                                deleteButton.type = 'button';
+                                deleteButton.href = acc.id ? `/delete_budget/${acc.id}` : '';
+                                deleteButton.setAttribute('data-target', 'sample-modal');
+                                const deleteIcon = document.createElement('span');
+                                deleteIcon.className = 'icon';
+                                deleteIcon.innerHTML = '<i class="mdi mdi-trash-can"></i>';
+                                deleteButton.appendChild(deleteIcon);
+
+                                buttonsDiv.appendChild(editButton);
+                                buttonsDiv.appendChild(deleteButton);
+                                actionsCell.appendChild(buttonsDiv);
+                                row.appendChild(actionsCell);
+
+                                // Append more cells as needed
+
+                                currentTableBody.appendChild(row);
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                });// Add the handleClick function as the event listener
+            })
+
+        } else {
+        }
+    }
+
+    function addEventListenerToAnchorTag(deptId) {
+        const paginationLinks = document.querySelectorAll(`[class*="custom-pagination-${deptId}"]`)
+        console.log(paginationLinks)
+        if (paginationLinks.length > 0) {
+            paginationLinks.forEach(link => {
+                link.addEventListener('click', handleClick(deptId)); // Add the handleClick function as the event listener
+            });
+        } else {
+        }
+    }
+
+    function updateTableAndPaginator(html, deptId) {
+        const parser = new DOMParser();
+        const newDoc = parser.parseFromString(html, 'text/html');
+        const newRow = newDoc.querySelectorAll(`#table-body-${deptId} tr`);
+        const newTable = newDoc.getElementById(`table-body-${deptId}`);
+        const newPaginator = newDoc.getElementById(`paginator-${deptId}`);
+        document.getElementById(`table-body-${deptId}`).replaceWith(newTable);
+        document.getElementById(`paginator-${deptId}`).replaceWith(newPaginator);
+
+        // Add any other necessary post-update operations
+    }
+
+// Add the event listener to the first pagination link for each department
+    const deptIds = ['CEO', 'Internal Audit', 'Supply Chain', 'BDS', 'Public Relations', 'Technical', 'Information Systems', 'Legal & Risk', 'Human Capital', 'Sales & Marketing', 'Administration', 'Finance', 'Staff & Remunerations','Assets'];
+    deptIds.forEach(deptId => {
+        addEventListenerToAnchorTag(deptId);
+        addEventListenerToInputSearch(deptId)
+
+    });
+});

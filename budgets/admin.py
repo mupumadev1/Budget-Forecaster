@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from budgets.models import BudgetLines, Department, Users, BudgetComments, BudgetStatus, BudgetAssumptions, \
-    BudgetTotals, Accounts, ChangeLog, BudgetLinesLog, BudgetVariations
+    BudgetTotals, Accounts, ChangeLog, BudgetLinesLog, BudgetVariations, Group
 
 # Register your models here.
 admin.site.register(BudgetLines)
@@ -15,3 +15,4 @@ admin.site.register(BudgetStatus)
 admin.site.register(BudgetAssumptions)
 admin.site.register(ChangeLog)
 admin.site.register(BudgetLinesLog)
+admin.site.register(Group)

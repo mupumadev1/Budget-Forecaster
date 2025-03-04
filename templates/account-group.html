@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load filters %}
+{% load static %}
+{% block content %}
+    <div id="loader" class="loader is-hidden"></div>
+    <div id="app">
+        <section class="section is-title-bar">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="hero is-hero-bar">
+            <div class="hero-body">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item"><h1 class="title">
+                           Group Settings
+                        </h1></div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <p class="mx-2">
+                            </p>
+                            
+                            <div class="buttons is-right">
+                               
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="section is-main-section ">
+             {% for group, accounts in grouped_accounts.items %}
+            {% include 'group-card-content.html' with dept=accounts dept_name=group  %}
+            {% endfor %}
+        </section>
+
+    </div>
+{% endblock %}
+ {% include 'partials/add-group-modal.html' %}
+{% block extra-scripts %}
+<script>
+  // Initialize all modals
+    
+   
+    document.getElementById('searchInput').addEventListener('keyup', filterTable);
+
+    function filterTable() {
+        const input = document.getElementById('searchInput');
+        const filter = input.value.toLowerCase();
+        const tableRows = document.querySelectorAll('.budget-table-body tr');
+
+        tableRows.forEach(row => {
+            const accountId = row.querySelector('td[data-label="Account id"]').textContent.toLowerCase();
+            if (accountId.includes(filter)) {
+                row.style.display = ''; // Show row
+            } else {
+                row.style.display = 'none'; // Hide row
+            }
+        });
+    }
+</script>{% endblock %}

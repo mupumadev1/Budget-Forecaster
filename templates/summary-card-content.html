@@ -1,0 +1,203 @@
+{% load filters %}
+{% load static %}
+<div class="card has-table has-mobile-sort-spaced">
+    <header class="card-header">
+        <p class="card-header-title title" >
+            <span class="icon "><i class="mdi mdi-account-multiple"></i></span>
+            {{ dept_name }} Department 
+        </p>
+       
+           <a href="{% url 'budgets:summary-to-excel-dept' dept_id %}" class="has-text-black card-header-icon"><span class="icon"><i class="mdi mdi-microsoft-excel mdi-18px" ></i></span></a>
+        
+    </header>
+
+    {% for id, sub_groups in group_ids %}
+       <header class="card-header">
+        <p class="card-header-title" >
+            <span class="icon"><i class="mdi mdi-account-multiple"></i></span>
+                {{ id.name }}
+        </p>
+        
+        <a class="card-header-icon accordion-button">
+            <span class="icon"><i class="mdi mdi-plus-thick mdi-18px"></i></span>
+        </a>
+
+        </header> 
+ 
+    
+    <div class="card-content is-hidden parent-accordion-content" data-department="{{ dept_name }}">
+       
+           
+     {% if sub_groups %}
+        <div class="sub-group-container" style="margin-left: 20px;">
+            {% for sub_group in sub_groups %}
+            <header class="card-header">
+                <p class="card-header-title">
+                    <span class="icon"><i class="mdi mdi-account-multiple-outline"></i></span>
+                    {{ sub_group.name }}
+                </p>
+
+                <a class="card-header-icon accordion-button">
+                    <span class="icon"><i class="mdi mdi-plus-thick mdi-18px"></i></span>
+                </a>
+            </header>
+
+            <div class="card-content is-hidden sub-accordion-content">
+                <div class="table-wrapper has-mobile-cards" style="overflow:auto;max-height:200px;">
+                    <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow" role="grid">
+                                           <thead>
+                    <tr>
+                        <th>Account ID</th>
+                        <th>Name</th>
+                        <th>Currency</th>
+                        <th>Year</th>
+                        <th>Total</th>
+                        <th>Jan</th>
+                        <th>Feb</th>
+                        <th>Mar</th>
+                        <th>Apr</th>
+                        <th role="columnheader">May</th>
+                        <th role="columnheader">Jun</th>
+                        <th role="columnheader">Jul</th>
+                        <th role="columnheader">Aug</th>
+                        <th role="columnheader">Sep</th>
+                        <th role="columnheader">Oct</th>
+                        <th role="columnheader">Nov</th>
+                        <th role="columnheader">Dec</th>
+
+                    </tr>
+                    </thead>
+
+                        {% for acc in dept %}
+                            {% if sub_group.id == acc.account.group.id %}
+                                               <tbody class="budget-table-body" id="table-body-{{ dept_name }}" role="rowgroup">
+                    
+                            <tr role="row" data-total="{{ acc.total }}">
+                                <td data-label="Account id" >{{ acc.account.acctfmttd }}</td>
+                                <td data-label="Account name"
+                                    style="width: 10%;">{{ acc.item_description }}</td>
+                                <td>{{ acc.currency.currency }}</td>
+                                <td>{{ acc.year }}</td>
+                                <td data-label="Budget Total">{{ acc.total }}</td>
+                                <td data-label="Jan">{{ acc.netperd1 }}</td>
+                                <td data-label="Feb">{{ acc.netperd2 }}
+                                </td>
+                                <td data-label="Mar">{{ acc.netperd3 }}
+                                </td>
+                                <td data-label="Apr">{{ acc.netperd4 }}
+                                </td>
+                                <td data-label="May">{{ acc.netperd5 }}
+                                </td>
+                                <td data-label="Jun">{{ acc.netperd6 }}
+                                </td>
+                                <td data-label="Jul">{{ acc.netperd7 }}
+                                </td>
+                                <td data-label="Aug">{{ acc.netperd8 }}
+                                </td>
+                                <td data-label="Sep">{{ acc.netperd9 }}
+                                </td>
+                                <td data-label="Oct">{{ acc.netperd10 }}
+                                </td>
+                                <td data-label="Nov">{{ acc.netperd11 }}
+                                </td>
+                                <td data-label="Dec">{{ acc.netperd12 }}
+                                </td>
+                             
+                            </tr>
+                            
+                        
+
+
+                    </tbody>
+
+                            {% endif %}
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        
+        </div>
+         {% else %}
+          
+            <div class="table-wrapper has-mobile-cards"
+                 style="overflow:auto;max-height:400px;">
+            
+                <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                       role="grid">
+     
+                    <thead>
+                    <tr>
+                        <th>Account ID</th>
+                        <th>Name</th>
+                        <th>Currency</th>
+                        <th>Year</th>
+                        <th>Total</th>
+                        <th>Jan</th>
+                        <th>Feb</th>
+                        <th>Mar</th>
+                        <th>Apr</th>
+                        <th role="columnheader">May</th>
+                        <th role="columnheader">Jun</th>
+                        <th role="columnheader">Jul</th>
+                        <th role="columnheader">Aug</th>
+                        <th role="columnheader">Sep</th>
+                        <th role="columnheader">Oct</th>
+                        <th role="columnheader">Nov</th>
+                        <th role="columnheader">Dec</th>
+
+                    </tr>
+                    </thead>
+                    {% for acc in dept %}
+     {% if id.id ==  acc.account.group.id %}
+                    <tbody class="budget-table-body" id="table-body-{{ dept_name }}" role="rowgroup">
+                    
+                            <tr role="row" data-total="{{ acc.total }}">
+                                <td data-label="Account id" >{{ acc.account.acctfmttd }}</td>
+                                <td data-label="Account name"
+                                    style="width: 10%;">{{ acc.item_description }}</td>
+                                <td>{{ acc.currency.currency }}</td>
+                                <td>{{ acc.year }}</td>
+                                <td data-label="Budget Total">{{ acc.total }}</td>
+                                <td data-label="Jan">{{ acc.netperd1 }}</td>
+                                <td data-label="Feb">{{ acc.netperd2 }}
+                                </td>
+                                <td data-label="Mar">{{ acc.netperd3 }}
+                                </td>
+                                <td data-label="Apr">{{ acc.netperd4 }}
+                                </td>
+                                <td data-label="May">{{ acc.netperd5 }}
+                                </td>
+                                <td data-label="Jun">{{ acc.netperd6 }}
+                                </td>
+                                <td data-label="Jul">{{ acc.netperd7 }}
+                                </td>
+                                <td data-label="Aug">{{ acc.netperd8 }}
+                                </td>
+                                <td data-label="Sep">{{ acc.netperd9 }}
+                                </td>
+                                <td data-label="Oct">{{ acc.netperd10 }}
+                                </td>
+                                <td data-label="Nov">{{ acc.netperd11 }}
+                                </td>
+                                <td data-label="Dec">{{ acc.netperd12 }}
+                                </td>
+                             
+                            </tr>
+                            
+                        
+
+
+                    </tbody>
+     {% endif %}
+ {% endfor %} 
+                </table>
+            
+            </div>
+    
+        {% endif %}
+    </div>
+   
+        
+{% endfor %}
+</div>

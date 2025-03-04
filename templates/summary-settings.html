@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load  widget_tweaks %}
+{% block content %}
+    <div id="app">
+        <section class="section is-title-bar">
+
+        </section>
+        <section class="hero is-hero-bar">
+            <div class="hero-body">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item"><h1 class="title">
+                   Groups
+                        </h1></div>
+                    </div>
+                    <div class="level-right" style="display: none;">
+                        <div class="level-item"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="section is-main-section">
+         
+            <div class="card is-center">
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <header class="card-header">
+                        <p class="card-header-title">
+                            <span class="icon"><i class="mdi mdi-ballot"></i></span>
+                            {{ department }} Assumptions
+                        </p>
+                    </header>
+                    <div class="card-content ">
+
+                        <div class="table-wrapper ">
+                            <table class="table sticky-header is-fullwidth is-striped  is-narrow  "
+                                   role="grid">
+                                
+                                
+                                <tbody id="assumptions">
+                                {% for obj in groups %}
+                                    <tr>
+                                        <td class="pr-2">{{ obj.name }}</td>
+                                        <td>{{ obj.rate }}</td>
+                                        <td class="is-actions-cell">
+                                            <div class="buttons ">
+                                                <a class="button is-small is-danger-passive editBtn"
+                                                   data-target="assumptions" data-action="edit" type="button">
+                                                    <span class="icon"><i class="mdi mdi-file-edit"></i></span>
+                                                </a>
+                                                <a href="{% url 'budgets:delete-assumption' obj.id %}"
+                                                   class="button is-small is-danger-passive " type="button">
+                                                    <span class="icon"><i class="mdi mdi-trash-can"></i></span>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="field is-horizontal">
+                            <div style="margin-left: 5.5%"></div>
+                            <hr>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="field is-grouped">
+                                        <div class="control">
+                                            <button type="button" 
+                                                    class="button is-info-passive mr-1">
+                                                <span>Add new group</span>
+                                            </button>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+                {% include 'partials/paginator.html' %}
+            </div>
+               {% if request.user.role == '002' %}
+                <div class="card is-center">
+                    <form method="POST" action="">
+                        {% csrf_token %}
+                        <header class="card-header">
+                            <p class="card-header-title">
+                                <span class="icon"><i class="mdi mdi-ballot"></i></span>
+                                Currency Assumptions
+                            </p>
+                        </header>
+                        <div class="card-content ">
+
+                            <div class="table-wrapper ">
+                                <table class="table sticky-header is-fullwidth is-striped  is-narrow  "
+                                       role="grid">
+                                    <thead>
+                                    <tr>
+                                        <th>Currency</th>
+                                        <th>Rate</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="currency_assumptions">
+                                    {% for obj in currency %}
+                                        <tr>
+                                            <td class="pr-2">{{ obj.currency }}</td>
+                                            <td>{{ obj.rate }}</td>
+                                            <td class="is-actions-cell">
+                                                <div class="buttons ">
+                                                    <a class="button is-small is-danger-passive editBtn"
+                                                       data-action="edit" data-target="currency" type="button">
+                                                        <span class="icon"><i class="mdi mdi-file-edit"></i></span>
+                                                    </a>
+                                                    <a href="{% url 'budgets:delete-currency' obj.id %}"
+                                                       class="button is-small is-danger-passive " type="button">
+                                                        <span class="icon"><i class="mdi mdi-trash-can"></i></span>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="field is-horizontal">
+                                <div style="margin-left: 5.5%"></div>
+                                <hr>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="field is-grouped">
+                                            <div class="control">
+                                                <button type="button" id="addCurrencyRowBtn"
+                                                        class="button is-info-passive mr-1">
+                                                    <span>Add</span>
+                                                </button>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </form>
+
+                </div>
+            {% endif %}
+        </section>
+
+    </div>
+    {% include 'partials/entry-type-modal.html' %}
+
+
+{% endblock %}
+{% block extra-scripts %}
+    <script>
+        const handleError = (input) => {
+            let inputValue = input.val().trim().replace(/,/g, '').replace(/-/g, '');
+            input.val(inputValue);
+            let decimalPattern = /^-?\d*(\.\d{1,2})?$/;
+            let errorMessage = '<p class="help is-danger">Please enter a valid number correct to two decimal places</p>';
+
+            if (!decimalPattern.test(inputValue)) {
+                input.addClass('is-danger');
+                input.next('.help').remove();
+                input.after(errorMessage);
+                return false; // Return false for invalid input
+            } else {
+                input.removeClass('is-danger');
+                input.next('.help').remove();
+                return true; // Return true for valid input
+            }
+        };
+    </script>
+{% endblock %}
+<!-- Scripts below are for demo purpose only -->
+

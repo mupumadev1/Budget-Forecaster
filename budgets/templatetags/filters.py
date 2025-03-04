@@ -3,7 +3,7 @@ from decimal import Decimal
 from django import template
 from django.shortcuts import get_object_or_404
 
-from budgets.models import BudgetStatus, BudgetLines, BudgetTotals, BudgetVariations
+from budgets.models import BudgetStatus, BudgetLines, BudgetTotals, BudgetVariations, FinancialYear
 
 register = template.Library()
 
@@ -51,6 +51,12 @@ def calculate_sum_half(obj, q):
     elif q == 2:
         return sum(getattr(obj, f'netperd{i}', 0) for i in range(7, 13))
 
+@register.filter(name='department')
+def determine_department(obj):
+    if obj.department != 13:
+        return 'opex'
+    elif obj.department == 13:
+        return 'capex'
 
 @register.filter(name='calculate_sum')
 def calculate_sum(queryset):
@@ -96,8 +102,9 @@ def budget_status(queryset):
 
 @register.filter(name='budget_active_filter')
 def budget_status(queryset):
+    year= FinancialYear.objects.get(is_active=True)
     for object in queryset:
-        obj = get_object_or_404(BudgetVariations, budget_set=object.budget_set)
+        obj = get_object_or_404(BudgetVariations, budget_set=object.budget_set,year=year.year)
         if obj.is_active:
             return True
         else:

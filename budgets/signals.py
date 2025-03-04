@@ -8,43 +8,74 @@ from django.dispatch import receiver
 from django.core.exceptions import ValidationError
 
 from budgets import models
-from budgets.models import BudgetStatus, Users, ChangeLog, BudgetLines, BudgetLinesLog, BudgetTotals
-from django.db.models import F
+from budgets.models import BudgetStatus, Users, ChangeLog, BudgetLines, BudgetLinesLog, BudgetTotals, FinancialYear
+from django.db.models import F, Sum
+
 
 @receiver(pre_save, sender=BudgetStatus)
 def ensure_single_active(sender, instance, **kwargs):
     if instance.is_active:
         dept = instance.department.id
         # Ensure that only one object has a True value
-        if sender.objects.filter(is_active=True,department_id=dept).exclude(id=instance.id).exists():
+        if sender.objects.filter(is_active=True,department_id=dept,year='2025').exclude(id=instance.id).exists():
             instance.is_active = False
             instance.full_clean()
             raise ValidationError('There can only be one active budget-set per department')
         # Set all other objects to False
 
+
+def log_budget_line_action(budget_line, action, user):
+    BudgetLinesLog.objects.create(
+        user=user,
+        action=action,
+        amount=budget_line.total,  # You can log a specific amount or total
+        item_description=budget_line.item_description,
+        account=budget_line.account,
+        total=budget_line.total,
+        netperd1=budget_line.netperd1,
+        netperd2=budget_line.netperd2,
+        netperd3=budget_line.netperd3,
+        netperd4=budget_line.netperd4,
+        netperd5=budget_line.netperd5,
+        netperd6=budget_line.netperd6,
+        netperd7=budget_line.netperd7,
+        netperd8=budget_line.netperd8,
+        netperd9=budget_line.netperd9,
+        netperd10=budget_line.netperd10,
+        netperd11=budget_line.netperd11,
+        netperd12=budget_line.netperd12,
+        department = budget_line.department,
+        year=budget_line.year
+    )
+
+
+# Signal to log updates and additions
 @receiver(post_save, sender=BudgetLines)
-def save_budget_line_log(sender, instance, created, **kwargs):
-    if created:
-        action = 'Added'
-    else:
-        action = 'Updated'
+def log_budget_lines_save(sender, instance, created, **kwargs):
 
-    # Check if the flag is True in the BudgetLinesLog model
-    if ChangeLog.objects.filter(department=instance.department.id,budget_set=instance.budget_set, flag=True).exists():
+    year = FinancialYear.objects.get(is_active=True)
+    if ChangeLog.objects.filter(year=year.year, flag=True,
+                                        ).exists():
+                user = instance.last_updated_by  # Assuming you have a way to access the user who made the changes
+                action = 'created' if created else 'updated'
 
-
-        BudgetLinesLog.objects.create(
-            timestamp=datetime.datetime.now(),
-            user_id=instance.last_updated_by_id,
-            action=action,
-            item_description=instance.item_description,
-            total=instance.total,
-            account=instance.account,
-            department=instance.department.name,
-            budget_set=instance.budget_set
-        )
+                # Log the action
+                log_budget_line_action(instance, action, user)
 
 
+
+
+# Signal to log deletions
+@receiver(pre_delete, sender=BudgetLines)
+def log_budget_lines_delete(sender, instance, **kwargs):
+    year = FinancialYear.objects.get(is_active=True)
+
+    if ChangeLog.objects.filter( flag=True,
+                                year=year.year).exists():
+        user = instance.last_updated_by  # Assuming you have a way to access the user who made the changes
+
+        # Log the delete action
+        log_budget_line_action(instance, 'deleted', user)
 
 
 
@@ -52,7 +83,7 @@ def round_to_two_places(value):
 
         return value.quantize(Decimal('0.00'))
 
-@receiver(pre_save, sender=BudgetLines)
+"""@receiver(pre_save, sender=BudgetLines)
 def track_budget_changes(sender, instance, **kwargs):
     try:
         old_instance = BudgetLines.objects.get(pk=instance.pk)
@@ -88,26 +119,80 @@ def track_budget_changes(sender, instance, **kwargs):
                 BudgetTotals.objects.filter(account=instance.account, currency=instance.currency,
                                             department=instance.department, year=instance.year).update(
                     **{field_name: datetime.datetime.now()})
+            elif field_name == 'last_updated_by':
+                BudgetTotals.objects.filter(account=instance.account, currency=instance.currency,
+                                            department=instance.department, year=instance.year).update(
+                    **{field_name: instance.last_updated_by})
             else:
                 BudgetTotals.objects.filter(account=instance.account, currency=instance.currency,
                                             department=instance.department, year=instance.year).update(
-                    **{field_name: F(field_name) + difference})
+                    **{field_name: F(field_name) + difference})"""
 
-@receiver(pre_delete, sender=BudgetLines)
-def delete_budget_line_log(sender, instance, **kwargs):
-    if ChangeLog.objects.filter(department=instance.department.id,budget_set=instance.budget_set, flag=True).exists():
 
-        BudgetLinesLog.objects.create(
-            timestamp= datetime.datetime.now(),
-            user_id=instance.last_updated_by_id,
-            action='Removed',
-            item_description=instance.item_description,
-            total=instance.total,
-            account=instance.account,
-            department=instance.department.name,
-            budget_set=instance.budget_set
+@receiver(post_save, sender=BudgetLines)
+def update_budget_totals_on_save(sender, instance, created, **kwargs):
+    """
+    Updates the BudgetTotals table whenever a BudgetLines instance is saved (created or updated).
+    """
+    year = instance.year
+    budget_set = instance.budget_set
+    account = instance.account
+
+    try:
+        budget_total = BudgetTotals.objects.get(
+            account=account, budget_set=budget_set, year=year
         )
+    except BudgetTotals.DoesNotExist:
+        print(
+            f"BudgetTotals object not found for account {account}, budget_set {budget_set}, year {year}. Creation might be needed.")
+        return  # Exit if not found
 
+    # Calculate the sum of all BudgetLines for this account, budget_set, and year
+    total_from_lines = BudgetLines.objects.filter(
+        account=account, budget_set=budget_set, year=year
+    ).aggregate(total_sum=Sum('total'))['total_sum'] or Decimal('0.00')
+
+    # Update the netperds from BudgetLines
+    netperd_totals = BudgetLines.objects.filter(
+        account=account, budget_set=budget_set, year=year
+    ).aggregate(
+        netperd1_sum=Sum('netperd1'),
+        netperd2_sum=Sum('netperd2'),
+        netperd3_sum=Sum('netperd3'),
+        netperd4_sum=Sum('netperd4'),
+        netperd5_sum=Sum('netperd5'),
+        netperd6_sum=Sum('netperd6'),
+        netperd7_sum=Sum('netperd7'),
+        netperd8_sum=Sum('netperd8'),
+        netperd9_sum=Sum('netperd9'),
+        netperd10_sum=Sum('netperd10'),
+        netperd11_sum=Sum('netperd11'),
+        netperd12_sum=Sum('netperd12')
+    )
+
+    # Update the BudgetTotals object with the new total and netperds
+    budget_total.total = total_from_lines
+    budget_total.netperd1 = netperd_totals['netperd1_sum'] or Decimal('0.00')
+    budget_total.netperd2 = netperd_totals['netperd2_sum'] or Decimal('0.00')
+    budget_total.netperd3 = netperd_totals['netperd3_sum'] or Decimal('0.00')
+    budget_total.netperd4 = netperd_totals['netperd4_sum'] or Decimal('0.00')
+    budget_total.netperd5 = netperd_totals['netperd5_sum'] or Decimal('0.00')
+    budget_total.netperd6 = netperd_totals['netperd6_sum'] or Decimal('0.00')
+    budget_total.netperd7 = netperd_totals['netperd7_sum'] or Decimal('0.00')
+    budget_total.netperd8 = netperd_totals['netperd8_sum'] or Decimal('0.00')
+    budget_total.netperd9 = netperd_totals['netperd9_sum'] or Decimal('0.00')
+    budget_total.netperd10 = netperd_totals['netperd10_sum'] or Decimal('0.00')
+    budget_total.netperd11 = netperd_totals['netperd11_sum'] or Decimal('0.00')
+    budget_total.netperd12 = netperd_totals['netperd12_sum'] or Decimal('0.00')
+
+    # Update last_updated field if needed
+    budget_total.last_updated = datetime.datetime.now()
+
+    # Save changes to BudgetTotals
+    budget_total.save()
+
+    print(
+        f"BudgetTotals updated for account {account}, budget_set {budget_set}, year {year}. New total: {total_from_lines}")
 
 @receiver(pre_save, sender=BudgetStatus)
 def handle_budget_status_changes(sender, instance, **kwargs):
@@ -115,15 +200,7 @@ def handle_budget_status_changes(sender, instance, **kwargs):
         original = sender.objects.get(pk=instance.pk)
 
         # Update flag field in ChangeLog model based on is_complete changes
-        if original.is_complete and not instance.is_complete:  # Change condition here
-            log_obj = ChangeLog.objects.filter(department=instance.department, budget_set=instance.budget_set)
-            if log_obj.exists():
-                log_obj.update(flag=True)
-            else:
-                ChangeLog.objects.create(flag=True,department=instance.department, budget_set=instance.budget_set)
-        elif not original.is_complete and instance.is_complete:
-            ChangeLog.objects.filter(department=instance.department, budget_set=instance.budget_set).update(
-                flag=False)
+
 
         # Send notifications based on is_complete changes
         if original.is_complete != instance.is_complete:

@@ -1,0 +1,64 @@
+{% load filters %}
+{% load static %}
+<div class="card has-table has-mobile-sort-spaced">
+    <header class="card-header">
+        <p class="card-header-title" >
+            <span class="icon"><i class="mdi mdi-account-multiple"></i></span>
+            {{ dept_name }} Changes
+        </p>
+
+        <a class="card-header-icon accordion-button">
+            <span class="icon"><i class="mdi mdi-plus-thick mdi-18px"></i></span>
+        </a>
+
+    </header>
+    <div class="card-content parent-accordion-content is-hidden" data-department="{{ dept_name }}">
+        {% if dept %}
+            <div class="table-wrapper has-mobile-cards"
+                 style="overflow:auto;max-height:400px;">
+                <table class="table is-fullwidth is-striped is-hoverable is-sortable is-narrow "
+                       role="grid">
+                    <thead>
+                    <tr>
+                            <th>User</th>
+                            <th>Account ID</th>
+                            <th>Account Name</th>
+                            <th>Item Description</th>
+                            <th>Action</th>
+                         <th>Amount</th>
+                       
+                           <th>Comment</th>
+                            <th>Time</th>
+                        
+
+                        </tr>
+                    </thead>
+                    <tbody class="budget-table-body" id="table-body-{{ dept_name }}" role="rowgroup">
+                    {% for status in dept %}
+                        {% if status %}
+                            <tr data-id="{{ status.id }}">
+
+                                <td>{{ status.user.first_name }} {{ status.user.last_name }}</td>
+                                <td>{{ status.account_id }}</td>
+                                <td>{{ status.account.acctdesc }}</td>
+                                <td>{{ status.item_description }}</td>
+                                <td>{{ status.action }}</td>
+                               <td>{{ status.amount }}</td>
+                               <td>{{ status.comment }}</td>
+                             <td data-label="Dec">{{ status.timestamp }}
+                                </td>
+
+
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+
+
+                    </tbody>
+                </table>
+                {% include 'partials/department-paginator.html' with dept=dept dept_name=dept_name %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% include 'partials/account-search-modal.html' with dept=dept dept_name=dept_name%}

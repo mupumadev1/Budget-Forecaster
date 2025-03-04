@@ -188,6 +188,61 @@ fieldset[disabled] .file-name, fieldset[disabled] .select select, .select fields
     width: 24px;
 }
 
+.parent {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1001;
+}
+
+.arc-1, .arc-2 {
+    width: 60px;
+    height: 60px;
+    position: absolute;
+    border-radius: 50%;
+    border: 10px solid;
+}
+
+.arc-1 {
+    border-color: #030637 transparent transparent transparent;
+    animation: spin-1 4s linear infinite;
+}
+
+.arc-2 {
+    border-color: transparent transparent #910A67 transparent;
+    animation: spin-2 4s linear infinite;
+}
+
+@keyframes spin-1 {
+    0% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(110deg);
+    }
+    50% {
+        transform: rotate(220deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes spin-2 {
+    0% {
+        transform: rotate(360deg);
+    }
+    25% {
+        transform: rotate(220deg);
+    }
+    50% {
+        transform: rotate(110deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
 .is-large.modal-close, .is-large.delete {
     height: 32px;
     max-height: 32px;
@@ -2598,7 +2653,7 @@ pre {
 
 body {
     color: hsl(0deg, 0%, 29%);
-    font-size: 1em;
+    font-size: 0.75em;
     font-weight: 400;
     line-height: 1.5;
 }
@@ -6900,14 +6955,15 @@ a.tag:hover {
     background: none;
     border: none;
     color: currentColor;
-    font-family: inherit;
-    font-size: 1em;
     margin: 0;
     padding: 0;
-    align-items: center;
+    align-items: left;
+    justify-content: left;
+
     cursor: pointer;
+    font-family: inherit;
+    font-size: 1em;
     display: flex;
-    justify-content: center;
     padding: 0.75rem 1rem;
 }
 
@@ -7490,10 +7546,12 @@ button.dropdown-item.is-active {
 
 .modal.is-active {
     display: flex;
+    z-index :103
 }
 
 .modal-background {
     background-color: rgba(10, 10, 10, 0.86);
+
 }
 
 .modal-content,
@@ -11438,11 +11496,11 @@ label.panel-block:hover {
 }
 
 .tile.is-child {
-    margin: 0 !important;
+    margin: 1px !important;
 }
 
 .tile.is-parent {
-    padding: 0.75rem;
+    padding: 0.15rem;
 }
 
 .tile.is-vertical {
@@ -14439,7 +14497,7 @@ a.has-text-danger-dark:hover, a.has-text-danger-dark:focus {
 .footer {
     background-color: hsl(0deg, 0%, 100%);
     padding: 0.495rem 1.5rem;
-    bottom:0;
+    bottom: 0;
     position: fixed;
     width: 100%
 }
@@ -14807,12 +14865,14 @@ table.table {
     width: 100%;
 }
 
-table.table thead th {
+
+table.table thead {
     border-bottom-width: 1px;
     position: sticky;
     background: white;
     top: 0;
     width: auto;
+    z-index:100
 }
 
 table.table td.checkbox-cell .b-checkbox.checkbox:not(.button), table.table th.checkbox-cell .b-checkbox.checkbox:not(.button) {
@@ -14830,16 +14890,153 @@ table.table td .image {
     width: 1.5rem;
     height: 1.5rem;
 }
+.background{
+    opacity:0.8;
+    Z-index:1000;
+}
+.spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
 
+}
+
+/*******************\
+    Loading Roller
+\*******************/
+
+@keyframes lds-roller {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.lds-roller {
+    position: relative;
+    display: inline-block;
+    height: 64px;
+    width: 64px;
+
+    div {
+        animation: lds-roller 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        transform-origin: 32px 32px;
+
+        &:after {
+            position: absolute;
+            display: block;
+            background: #00539f;
+            border-radius: 50%;
+            content: " ";
+            margin: -3px 0 0 -3px;
+            height: 6px;
+            width: 6px;
+        }
+
+        &:nth-child(1) {
+            animation-delay: -0.036s;
+
+            &:after {
+                top: 50px;
+                left: 50px;
+            }
+        }
+
+        &:nth-child(2) {
+            animation-delay: -0.072s;
+
+            &:after {
+                top: 54px;
+                left: 45px;
+            }
+        }
+
+        &:nth-child(3) {
+            animation-delay: -0.108s;
+
+            &:after {
+                top: 57px;
+                left: 39px;
+            }
+        }
+
+        &:nth-child(4) {
+            animation-delay: -0.144s;
+
+            &:after {
+                top: 58px;
+                left: 32px;
+            }
+        }
+
+        &:nth-child(5) {
+            animation-delay: -0.18s;
+
+            &:after {
+                top: 57px;
+                left: 25px;
+            }
+        }
+
+        &:nth-child(6) {
+            animation-delay: -0.216s;
+
+            &:after {
+                top: 54px;
+                left: 19px;
+            }
+        }
+
+        &:nth-child(7) {
+            animation-delay: -0.252s;
+
+            &:after {
+                top: 50px;
+                left: 14px;
+            }
+        }
+
+        &:nth-child(8) {
+            animation-delay: -0.288s;
+
+            &:after {
+                top: 45px;
+                left: 10px;
+            }
+        }
+    }
+}
 table.table td {
     width: auto;
     vertical-align: middle;
 }
 
+table.table td.is-actions-cell {
+    position: sticky;
+    right: 0;
+    top: 0;
+    z-index: 100;
+    background-color: white;
+}
+.button.budget-variation{
+    z-index: 101;
+}
+
 .b-table {
     /* This stylizes buefy's pagination */
 }
+.paginator{
+    position:sticky;
+    background-color: white;
+    bottom:0;
+    z-index:101;
 
+}
 .b-table .table {
     border: 0;
     border-radius: 0;

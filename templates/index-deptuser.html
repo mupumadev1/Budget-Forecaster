@@ -32,45 +32,7 @@
             </div>
         </section>
         <section class="section is-main-section ">
-            <div class="notification-div is-hidden mb-3" id="upload-notification">
-                <div class="notification is-info">
-                    <div class="level">
-                        <div class="level-left">
-                            <div class="level-item">
-                                <div>
-                                    <span class="icon"><i class="mdi mdi-buffer default"></i></span>
-                                    <b>Your Budget Has been Submitted for Approval. If you wish to make any changes
-                                        request
-                                        to do so <a>here</a></b>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="level-right">
-                            <button type="button" class="button is-small is-white jb-notification-dismiss">Dismiss
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="notification-div is-hidden mb-3" id="change-notification">
-                <div class="notification is-info">
-                    <div class="level">
-                        <div class="level-left">
-                            <div class="level-item">
-                                <div>
-                                    <span class="icon"><i class="mdi mdi-buffer default"></i></span>
-                                    <b>Your change request has been submitted please. You will be notified once
-                                        approved</b>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="level-right">
-                            <button type="button" class="button is-small is-white jb-notification-dismiss">Dismiss
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+           
            
             {% if request.user.department.id == 12 %}
             {% include 'department-card-content.html' with dept=finance dept_name='Finance' dept_id=12%}
