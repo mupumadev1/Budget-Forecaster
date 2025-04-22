@@ -1073,7 +1073,7 @@ document.addEventListener('click', function(event) {
     }
 
 // Add the event listener to the first pagination link for each department
-    const deptIds = ['CEO', 'Internal Audit', 'Supply Chain', 'BDS', 'Public Relations', 'Technical', 'Information Systems', 'Legal & Risk', 'Human Capital', 'Sales & Marketing', 'Administration', 'Finance', 'Staff & Remunerations','Assets'];
+    const deptIds = ['CEO', 'Internal Audit', 'Supply Chain', 'Strategy', 'Public Relations', 'Technical', 'Information Systems', 'Legal & Risk', 'Human Capital', 'Sales & Marketing', 'Administration', 'Finance', 'Staff & Remunerations','Assets'];
     deptIds.forEach(deptId => {
         addEventListenerToAnchorTag(deptId);
         addEventListenerToInputSearch(deptId)

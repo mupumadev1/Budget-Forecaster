@@ -40,7 +40,7 @@ from budgets.models import BudgetLines, Users, Glafs, Glpjd, BudgetComments, Bud
     ChangeLog, FinancialYear, Group, BudgetLinesLogVariations
 
 
-def fnetperd_in_quarter(quarter):
+def netperd_in_quarter(quarter):
     quarter = int(quarter)
     if quarter == 1:
         return ['netperd1', 'netperd2', 'netperd3']
@@ -282,14 +282,13 @@ def get_pending_amounts(obj, current_q):
             pending_expenses = Enebd.objects.using('sql_server').filter(
                 idglacct__icontains=acctids,
                 status=1,
-                audtdate__gte=start_date,
-                audtdate__lte=end_date,
+                expdate__gte=start_date,
+                expdate__lte=end_date,
 
             ).exclude(amtlinet=0).values('amtlinet', 'textdesc', 'idglacct', 'audtdate', 'cntbtch')
             pending_expenses_numbers = Enebh.objects.using('sql_server').filter(
                 cntbtch__in=pending_expenses.values_list('cntbtch', flat=True)
             ).values('idexpst', 'cntbtch')
-
             for expense in pending_expenses:
                 date_obj = datetime.strptime(str(expense['audtdate']), '%Y%m%d')
                 formatted_date = date_obj.strftime('%d-%m-%Y')
@@ -304,14 +303,14 @@ def get_pending_amounts(obj, current_q):
                         'date': formatted_date,
                         'document_number': document_number
                     })
-            pending_requisition = Enrqnl.objects.using('sql_server').filter(
+            pending_requisition =	Enrqnl.objects.using('sql_server').filter(
                 fmtglacct__icontains=acctids,
                 status=1,
-                audtdate__gte=start_date,
-                audtdate__lte=end_date,
+                exparrival__gte=start_date,
+                exparrival__lte=end_date,
 
-            ).exclude(extended = 0).values('itemdesc', 'extended', 'fmtglacct', 'audtdate', 'rqnnumber')
-
+            ).exclude(extended = 0).values('itemdesc', 'extended', 'fmtglacct', 'audtdate', 'rqnnumber','status')
+            print(pending_requisition)
             for req in pending_requisition:
                 date_obj = datetime.strptime(str(req['audtdate']), '%Y%m%d')
                 formatted_date = date_obj.strftime('%d-%m-%Y')
@@ -328,9 +327,9 @@ def get_pending_amounts(obj, current_q):
 
             pending_purchase_order = Poporl.objects.using('sql_server').filter(
                 glnonstkcr__icontains=acctids,
-                completion=1,
-                audtdate__gte=start_date,
-                audtdate__lte=end_date,
+                exparrival__gte=start_date,
+                exparrival__lte=end_date,
+                completion=1
 
             ).exclude(extended =0).values('itemdesc', 'extended', 'glnonstkcr', 'audtdate', 'porhseq')
             pending_purchase_order_header = Poporh1.objects.using('sql_server').filter(
@@ -374,8 +373,8 @@ def get_pending_amounts(obj, current_q):
             pending_expenses = Enebd.objects.using('sql_server').filter(
                 idglacct__icontains=acctids,
                 status=1,
-                audtdate__gte=start_date,
-                audtdate__lte=end_date,
+                expdate__gte=start_date,
+                expdate__lte=end_date,
 
             ).exclude(amtlinet=0).values('amtlinet', 'textdesc', 'idglacct', 'audtdate', 'cntbtch')
             pending_expenses_numbers = Enebh.objects.using('sql_server').filter(
@@ -399,8 +398,8 @@ def get_pending_amounts(obj, current_q):
             pending_requisition = Enrqnl.objects.using('sql_server').filter(
                 fmtglacct__icontains=acctids,
                 status=1,
-                audtdate__gte=start_date,
-                audtdate__lte=end_date,
+                exparrival__gte=start_date,
+                exparrival__lte=end_date,
 
             ).exclude(extended =0).values('itemdesc', 'extended', 'fmtglacct', 'audtdate', 'rqnnumber')
 
@@ -421,8 +420,8 @@ def get_pending_amounts(obj, current_q):
             pending_purchase_order = Poporl.objects.using('sql_server').filter(
                 glnonstkcr__icontains=acctids,
                 completion=1,
-                audtdate__gte=start_date,
-                audtdate__lte=end_date,
+                exparrival__gte=start_date,
+                exparrival__lte=end_date,
 
             ).exclude(extended=0).values('itemdesc', 'extended', 'glnonstkcr', 'audtdate', 'porhseq')
             pending_purchase_order_header = Poporh1.objects.using('sql_server').filter(
@@ -501,42 +500,42 @@ def period_aggregate_singular(obj, obj2, netperd):
         pending_expenses = Enebd.objects.using('sql_server').filter(
             idglacct__icontains=acctids,
             status=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            expdate__gte=start_date,
+            expdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
         pending_expenses_all = Enebd.objects.using('sql_server').filter(
             idglacct__icontains=acctids,
             status=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            expdate__gte=int(year.year + '0101'),
+            expdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
         pending_requisition = Enrqnl.objects.using('sql_server').filter(
             fmtglacct__icontains=acctids,
             status=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            exparrival__gte=start_date,
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_requisition_all = Enrqnl.objects.using('sql_server').filter(
             fmtglacct__icontains=acctids,
             status=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            exparrival__gte=int(year.year + '0101'),
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_purchase_order = Poporl.objects.using('sql_server').filter(
             glnonstkcr__icontains=acctids,
             completion=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            exparrival__gte=start_date,
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
         pending_purchase_order_all = Poporl.objects.using('sql_server').filter(
             glnonstkcr__icontains=acctids,
             completion=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            exparrival__gte=int(year.year + '0101'),
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_total = pending_expenses + pending_requisition + pending_purchase_order
@@ -618,7 +617,7 @@ def quarter_aggregate_singular(obj, obj2, current_q):
         3: 10,
         4: 13
     }
-    months_in_current_quarter = netperd_in_quarter(current_q)
+    months_in_current_quarter =netperd_in_quarter(current_q)
     net_perds = [month for month in months_in_current_quarter]
     period_values_aggregations = {period: Sum(period) for period in net_perds}
     if obj and obj2:
@@ -638,43 +637,43 @@ def quarter_aggregate_singular(obj, obj2, current_q):
         pending_expenses = Enebd.objects.using('sql_server').filter(
             idglacct__icontains__in=acctids,
             status=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            expdate__gte=start_date,
+            expdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
         pending_expenses_all = Enebd.objects.using('sql_server').filter(
             idglacct__icontains__in=acctids,
             status=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            expdate__gte=int(year.year + '0101'),
+            expdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
         pending_requisition = Enrqnl.objects.using('sql_server').filter(
             glacct__icontains__in=acctids,
             status=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            exparrival__gte=start_date,
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_requisition_all = Enrqnl.objects.using('sql_server').filter(
             glacct__icontains__in=acctids,
             status=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            exparrival__gte=int(year.year + '0101'),
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_purchase_order = Poporl.objects.using('sql_server').filter(
             glnonstkcr__icontains__in=acctids,
             completion=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            exparrival__gte=start_date,
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_purchase_order_all = Poporl.objects.using('sql_server').filter(
             glnonstkcr__icontains__in=acctids,
             completion=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            exparrival__gte=int(year.year + '0101'),
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_total = pending_expenses + pending_requisition + pending_purchase_order
@@ -775,43 +774,43 @@ def quarter_aggregate(queryset, queryset2, queryset3, queryset4, current_q, dept
         pending_expenses = Enebd.objects.using('sql_server').filter(
             q1,
             status=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            expdate__gte=start_date,
+            expdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
         pending_expenses_all = Enebd.objects.using('sql_server').filter(
             q1,
             status=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            expdate__gte=int(year.year + '0101'),
+            expdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
         pending_requisition = Enrqnl.objects.using('sql_server').filter(
             q2,
             status=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            exparrival__gte=start_date,
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_requisition_all = Enrqnl.objects.using('sql_server').filter(
             q2,
             status=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            exparrival__gte=int(year.year + '0101'),
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_purchase_order = Poporl.objects.using('sql_server').filter(
             q3,
             completion=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            exparrival__gte=start_date,
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_purchase_order_all = Poporl.objects.using('sql_server').filter(
             q3,
             completion=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            exparrival__gte=int(year.year + '0101'),
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
 
         pending_total = pending_expenses + pending_requisition + pending_purchase_order
@@ -911,22 +910,22 @@ def netperd_aggregate(queryset, queryset2, queryset3, queryset4, netperd, dept_i
         pending_expenses = Enebd.objects.using('sql_server').filter(
             q1,
             status=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            expdate__gte=start_date,
+            expdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
         print(pending_expenses)
         pending_expenses_all = Enebd.objects.using('sql_server').filter(
             q1,
             status=1,
-            audtdate__gte=int(year.year + '0101'),
-            audtdate__lte=end_date
+            expdate__gte=int(year.year + '0101'),
+            expdate__lte=end_date
         ).aggregate(total_amount=Sum('amtlinet'))['total_amount'] or 0
 
         pending_requisition = Enrqnl.objects.using('sql_server').filter(
             q2,
             status=1,
-            audtdate__gte=start_date,
-            audtdate__lte=end_date
+            exparrival__gte=start_date,
+            exparrival__lte=end_date
         ).aggregate(total_amount=Sum('extended'))['total_amount'] or 0
         print(pending_requisition)
         pending_requisition_all = Enrqnl.objects.using('sql_server').filter(
@@ -3134,8 +3133,8 @@ def opex_index(request):
 
             'finance': finance_page_obj,
             'finance_group_ids': finance_group_ids,
-            'staff_n_page': staff_n_page_obj,
-            'staff_n_group_ids': staff_n_group_ids,
+            'staff_remuneration': staff_n_page_obj,
+            'staff_remuneration_group_ids': staff_n_group_ids,
             'budget_set': obj.budget_set,
             'total': total_sum
         }
@@ -4013,6 +4012,7 @@ def update(request, object_id):
         year = FinancialYear.objects.get(is_active=True)
         obj_t = get_object_or_404(BudgetTotals, id=object_id, year=year.year)
         lines = BudgetLines.objects.filter(account__acctid=obj_t.account.acctid, year=year.year)
+    
         active = get_object_or_404(BudgetVariations, is_active=True,year=year.year)
         if active:
             if request.user.role != '002':
